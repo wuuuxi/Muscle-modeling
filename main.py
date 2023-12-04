@@ -21,11 +21,17 @@ import gekko
 #        202, 208, 236, 62, 140, 50,
 #        236, 236, 1020, 94, 196]
 
-muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l', 'tric_long_1_l', 'anconeus_1_l']
-OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404, 0.09027865826431776, 0.06829274852591065]
-MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
-PennationAngleAtOptimal = [0, 0, 0, 0.174532925199, 0.0]
-KshapeActive = [0.45, 0.45, 0.45, 0.45, 0.45]
+# muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l']
+# OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404]
+# MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
+# PennationAngleAtOptimal = [0, 0, 0]
+# KshapeActive = [0.45, 0.45, 0.45]
+
+muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l', 'tric_long_1_l']
+OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404, 0.09027865826431776]
+MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
+PennationAngleAtOptimal = [0, 0, 0, 0.174532925199]
+KshapeActive = [0.45, 0.45, 0.45, 0.45]
 
 all_muscles = ['bic_s_l', 'bic_l_l',
                'brachialis_1_l', 'brachialis_2_l', 'brachialis_3_l', 'brachialis_4_l', 'brachialis_5_l',
@@ -47,12 +53,13 @@ all_iso = [173, 347,
 # iso = [352.62402, 625.9219, 72.08794]
 # iso = [346, 628, 60, 446.0]
 # iso = [173 * 2, 314 * 7, 30 * 3]
-iso = [173, 314, 30, 223, 153]
+# iso = [173, 314, 30]
+iso = [173, 314, 30, 223]
 emg_lift_len = 1000
 target_len = 50
 # emg related
 fs = 1000
-only_lift = False
+only_lift = True
 
 
 def b_spline_basis(i, p, u, nodeVector):
@@ -169,7 +176,7 @@ def createFiberActiveForceLengthCurve(x0, x1, x2, x3, ylow, dydx, curviness, com
 
 def emg_rectification(x, Fs, code=None):
     # Fs 采样频率，在EMG信号中是1000Hz
-    x_mean = np.mean(x[1:200])
+    x_mean = np.mean(x)
     raw = x - x_mean * np.ones_like(x)
     t = np.arange(0, raw.size / Fs, 1 / Fs)
     EMGFWR = abs(raw)
@@ -208,17 +215,28 @@ def emg_rectification(x, Fs, code=None):
     #     # ref = 0.235
     #     # ref = 0.50
     #     ref = 0.8
-    # yuetian
+    # # yuetian
+    # if code == 'BIC':
+    #     ref = 0.69173
+    # elif code == 'BRA':
+    #     ref = 0.38164
+    # elif code == 'BRD':
+    #     ref = 0.63951
+    # elif code == 'TRIlong':
+    #     ref = 0.1
+    # elif code == 'TRIlat':
+    #     ref = 0.1
+    # else:
+    #     ref = max(EMGLE)
+
     if code == 'BIC':
-        ref = 0.69173
+        ref = 63.4452
     elif code == 'BRA':
-        ref = 0.38164
+        ref = 29.9301
     elif code == 'BRD':
-        ref = 0.63951
-    elif code == 'TRIlong':
-        ref = 0.1
-    elif code == 'TRIlat':
-        ref = 0.1
+        ref = 116.8316
+    elif code == 'TRI':
+        ref = 42.5301
     else:
         ref = max(EMGLE)
     # ref = 1
@@ -402,7 +420,224 @@ def read_realted_files():
             emg[1][i].append(emg_BRA[idx])
             emg[2][i].append(emg_BRD[idx])
             emg[3][i].append(emg_TRIlong[idx])
-            emg[4][i].append(emg_TRIlat[idx])
+            # emg[4][i].append(emg_TRIlat[idx])
+
+    # yt = [([], [], []) for _ in range(len(muscle_idx))]
+    # for i in range(len(time_yt_10) - 1):
+    #     yt[j].append(resample_by_len(yt_10[j, step(time_yt_10[i]):step(time_yt_10[i + 1])], unified_len))
+
+    # act = [[] for _ in range(len(muscle_idx))]
+    # arm = [[] for _ in range(len(muscle_idx))]
+    # pff = [[] for _ in range(len(muscle_idx))]
+    # ml = [[] for _ in range(len(muscle_idx))]
+    # for i in range(len(muscle_idx)):
+    #     act[i] = scipy.signal.savgol_filter(so_act[muscle_idx[i]], savgol_filter_pra, 3)
+    #     # act[i] = so_act[muscle_idx[i]]
+    #     arm[i] = momarm[muscle_idx[i]]
+    #     pff[i] = pforce[muscle_idx[i]]
+    #     ml[i] = length[muscle_idx[i]]
+    # act = np.asarray(act)
+    # arm = np.asarray(arm)
+    # pff = np.asarray(pff)
+    # ml = np.asarray(ml)
+    # torque = np.asarray(torque)
+
+    # act[0] = so_act['bic_s_l']
+    # act[1] = so_act['brachialis_1_l']
+    # act[2] = so_act['brachiorad_1_l']
+    # act[3] = so_act['tric_long_1_l']
+    # act[3] = so_act['tric_long_2_l']
+    # act[4] = so_act['tric_long_3_l']
+    # act[4] = so_act['tric_long_4_l']
+    # act[5] = so_act['tric_med_1_l']
+    # act[5] = so_act['tric_med_2_l']
+    # act[5] = so_act['tric_med_3_l']
+    # act[5] = so_act['tric_med_4_l']
+    # act[5] = so_act['tric_med_5_l']
+    # act[6] = so_act['bic_l_l']
+    # act[7] = so_act['brachiorad_2_l']
+    # act[8] = so_act['brachiorad_3_l']
+    # act[9] = so_act['brachialis_2_l']
+
+    # ml = [[] for _ in range(10)]
+    # ml[0] = length['bic_s_l']
+    # ml[1] = length['brachialis_1_l']
+    # ml[2] = length['brachiorad_1_l']
+    # ml[3] = length['tric_long_1_l']
+    # ml[4] = length['tric_long_3_l']
+    # ml[5] = length['tric_med_1_l']
+    # ml[6] = length['bic_l_l']
+    # ml[7] = length['brachiorad_2_l']
+    # ml[8] = length['brachiorad_3_l']
+    # ml[9] = length['brachialis_2_l']
+    # length1 = length['bic_s_l']
+    # length2 = length['brachialis_1_l']
+    # length3 = length['brachiorad_1_l']
+
+    # arm = [[] for _ in range(10)]
+    # arm[0] = momarm['bic_s_l']
+    # arm[1] = momarm['brachialis_1_l']
+    # arm[2] = momarm['brachiorad_1_l']
+    # arm[3] = momarm['tric_long_1_l']
+    # arm[4] = momarm['tric_long_3_l']
+    # arm[5] = momarm['tric_med_1_l']
+    # arm[6] = momarm['bic_l_l']
+    # arm[7] = momarm['brachiorad_2_l']
+    # arm[8] = momarm['brachiorad_3_l']
+    # arm[9] = momarm['brachialis_2_l']
+    # # momarm1 = momarm['bic_s_l']
+    # # momarm2 = momarm['brachialis_1_l']
+    # # momarm3 = momarm['brachiorad_1_l']
+    # # momarm4 = momarm['bic_l_l']
+    # # momarm5 = momarm['brachiorad_2_l']
+    # # momarm6 = momarm['brachiorad_3_l']
+    return emg_mean_out, emg_std_out, arm_out, fa_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg
+
+
+def read_chenzui_realted_files():
+    fs = 2000
+    # emg = np.load('files/chenzui/emg-11.npy')
+    # moment = pd.read_excel('files/chenzui/inverse_dynamics-11.xlsx')
+    # length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-11.xlsx')
+    # tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-11.xlsx')
+    # momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-11.xlsx')
+    # emg = np.load('files/chenzui/emg-13.npy')
+    # moment = pd.read_excel('files/chenzui/inverse_dynamics-13.xlsx')
+    # length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-13.xlsx')
+    # tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-13.xlsx')
+    # momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-13.xlsx')
+    emg = np.load('files/chenzui/emg-14.npy')
+    moment = pd.read_excel('files/chenzui/inverse_dynamics-14.xlsx')
+    length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-14.xlsx')
+    tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-14.xlsx')
+    momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-14.xlsx')
+    emg_mean = np.load('emg/chenzui_mean.npy')
+    emg_std = np.load('emg/chenzui_std.npy')
+
+    time_torque = moment['time']
+    time_momarm = momarm['time']
+
+    # timestep_emg = [50.398, 57.531, 57.931, 70.13]
+    # timestep_emg = [214.69, 223.09, 223.09, 236.139]
+    timestep_emg = [295.103, 303.336, 303.686, 316.469]
+    t_tor = []
+    t_arm = []
+    tor = []
+    arm = [[] for _ in range(len(muscle_idx))]
+    ml = [[] for _ in range(len(muscle_idx))]
+    tl = [[] for _ in range(len(muscle_idx))]
+    fa = [[] for _ in range(len(muscle_idx))]
+    fr = []
+
+    torque = moment['elbow_flex_l_moment']
+    for i in range(int(len(timestep_emg)/2)):
+        tts = find_nearest_idx(time_torque, timestep_emg[2 * i])
+        tte = find_nearest_idx(time_torque, timestep_emg[2 * i + 1])
+        t_tor.append(resample_by_len(list(time_torque[tts:tte]), target_len))
+        tor.append(resample_by_len(list(torque[tts:tte]), target_len))
+
+        tms = find_nearest_idx(time_momarm, timestep_emg[2 * i])
+        tme = find_nearest_idx(time_momarm, timestep_emg[2 * i + 1])
+        t_arm.append(resample_by_len(list(time_momarm[tms:tme]), target_len))
+        for j in range(len(muscle_idx)):
+            arm[j].append(resample_by_len(list(momarm[muscle_idx[j]][tms:tme]), target_len))
+            ml[j].append(resample_by_len(list(length[muscle_idx[j]][tms:tme]), target_len))
+            tl[j].append(resample_by_len(list(tenlen[muscle_idx[j]][tms:tme]), target_len))
+            for k in range(tms, tme):
+                fr.append(calc_fal(length[muscle_idx[j]][k], tenlen[muscle_idx[j]][k], muscle_idx[j]))
+            fa[j].append(resample_by_len(fr, target_len))
+            fr = []
+
+    t_tor_out = []  # 3 actions
+    t_arm_out = []
+    emg_mean_out = []
+    emg_std_out = []
+    tor_out = []
+    arm_out = [[] for _ in range(len(muscle_idx))]
+    ml_out = [[] for _ in range(len(muscle_idx))]
+    tl_out = [[] for _ in range(len(muscle_idx))]
+    fa_out = [[] for _ in range(len(muscle_idx))]
+    for i in range(len(muscle_idx)):
+        if only_lift is False:
+            emg_mean_out.append(resample_by_len(emg_mean[i, :], target_len * 2))
+            emg_std_out.append(resample_by_len(emg_std[i, :], target_len * 2))
+            arm_out[i].append(np.concatenate([arm[i][0], arm[i][1]]))
+            ml_out[i].append(np.concatenate([ml[i][0], ml[i][1]]))
+            tl_out[i].append(np.concatenate([tl[i][0], tl[i][1]]))
+            fa_out[i].append(np.concatenate([fa[i][0], fa[i][1]]))
+        else:
+            emg_mean = emg_mean[:, :emg_lift_len]
+            emg_std = emg_std[:, :emg_lift_len]
+            emg_mean_out.append(resample_by_len(emg_mean[i, :], target_len))
+            emg_std_out.append(resample_by_len(emg_std[i, :], target_len))
+            arm_out[i].append(arm[i][0])
+            ml_out[i].append(ml[i][0])
+            tl_out[i].append(tl[i][0])
+            fa_out[i].append(fa[i][0])
+
+    if only_lift is False:
+        t_tor_out.append(np.concatenate([t_tor[0], t_tor[1]]))
+        t_arm_out.append(np.concatenate([t_arm[0], t_arm[1]]))
+        tor_out.append(np.concatenate([tor[0], tor[1]]))
+    else:
+        t_tor_out.append(t_tor[0])
+        t_arm_out.append(t_arm[0])
+        tor_out.append(tor[0])
+
+    [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC')
+    [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA')
+    [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD')
+    # [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
+    # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
+    # t1 = t1 - 4.131 + 45.182  # 11
+    # t1 = t1 - 4.763 + 209.74  # 13
+    t1 = t1 - 7.0005 + 289.653  # 14
+
+    # plt.figure(figsize=(6, 7.7))
+    # plt.subplot(311)
+    # plt.plot(t1, np.asarray(emg_BIC), label='emg', linewidth=2, zorder=3)
+    # plt.ylabel('bic_s_l', weight='bold')
+    # plt.legend()
+    # plt.subplot(312)
+    # plt.plot(t1, np.asarray(emg_BRA), label='emg', linewidth=2, zorder=3)
+    # plt.ylabel('brachialis_1_l', weight='bold')
+    # plt.legend()
+    # plt.subplot(313)
+    # plt.plot(t1, np.asarray(emg_BRD), label='emg', linewidth=2, zorder=3)
+    # plt.xlabel('time (s)', weight='bold')
+    # plt.ylabel('brachiorad_1_l', weight='bold')
+    # plt.legend()
+
+
+    emg = [([]) for _ in range(len(muscle_idx))]
+    time_emg = [[]]
+    for t in t_tor_out[0]:
+        idx = find_nearest_idx(t1, t)
+        time_emg[0].append(t1[idx])
+        emg[0].append(emg_BIC[idx])
+        emg[1].append(emg_BRA[idx])
+        emg[2].append(emg_BRD[idx])
+        # emg[3].append(emg_TRIlong[idx])
+        # emg[4][i].append(emg_TRIlat[idx])
+
+    # plt.figure(figsize=(6, 7.7))
+    # plt.subplot(311)
+    # plt.plot(time_emg[0], np.asarray(emg[0]), label='emg', linewidth=2, zorder=3)
+    # plt.ylabel('bic_s_l', weight='bold')
+    # plt.legend()
+    #
+    # plt.subplot(312)
+    # plt.plot(time_emg[0], np.asarray(emg[1]), label='emg', linewidth=2, zorder=3)
+    # # plt.xlabel('time (s)')
+    # plt.ylabel('brachialis_1_l', weight='bold')
+    # plt.legend()
+    #
+    # plt.subplot(313)
+    # plt.plot(time_emg[0], np.asarray(emg[2]), label='emg', linewidth=2, zorder=3)
+    # plt.xlabel('time (s)', weight='bold')
+    # plt.ylabel('brachiorad_1_l', weight='bold')
+    # plt.legend()
+    # plt.show()
 
     # yt = [([], [], []) for _ in range(len(muscle_idx))]
     # for i in range(len(time_yt_10) - 1):
@@ -477,15 +712,18 @@ def read_realted_files():
 
 
 def emg_file_progressing(emg):
-    [emg_BIC, t1] = emg_rectification(emg['BIC'], fs, 'BIC')
-    [emg_BRA, t2] = emg_rectification(emg['BRA'], fs, 'BRA')
-    [emg_BRD, t3] = emg_rectification(emg['BRD'], fs, 'BRD')
-    [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
-    [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
-    # emg_list = np.asarray([emg_BIC, emg_BRA, emg_BRD])
-    # t_list = np.asarray([t1, t2, t3])
-    emg_list = np.asarray([emg_BIC, emg_BRA, emg_BRD, emg_TRIlong, emg_TRIlat])
-    t_list = np.asarray([t1, t2, t3, t4, t5])
+    # [emg_BIC, t1] = emg_rectification(emg['BIC'], fs, 'BIC')
+    # [emg_BRA, t2] = emg_rectification(emg['BRA'], fs, 'BRA')
+    # [emg_BRD, t3] = emg_rectification(emg['BRD'], fs, 'BRD')
+    # [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
+    # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
+    [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC')
+    [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA')
+    [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD')
+    emg_list = np.asarray([emg_BIC, emg_BRA, emg_BRD])
+    t_list = np.asarray([t1, t2, t3])
+    # emg_list = np.asarray([emg_BIC, emg_BRA, emg_BRD, emg_TRIlong, emg_TRIlat])
+    # t_list = np.asarray([t1, t2, t3, t4, t5])
     return [emg_list, t_list]
 
 
@@ -684,6 +922,157 @@ def calculate_emg_distribution():
     plt.show()
 
 
+def calculate_chenzui_emg_distribution():
+    unified_len = 1000
+    cz_11 = np.load('files/chenzui/emg-11.npy')
+    cz_13 = np.load('files/chenzui/emg-13.npy')
+    cz_14 = np.load('files/chenzui/emg-14.npy')
+
+    def step(time):
+        return int(time * 1000 - 1)
+
+    [cz_11, t_cz_11] = emg_file_progressing(cz_11)
+    [cz_13, t_cz_13] = emg_file_progressing(cz_13)
+    [cz_14, t_cz_14] = emg_file_progressing(cz_14)
+    # [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
+    # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
+    t_cz_11 = t_cz_11 - 4.131 + 45.182  # 11
+    t_cz_13 = t_cz_13 - 4.763 + 209.74  # 13
+    t_cz_14 = t_cz_14 - 7.0005 + 289.653  # 14
+    timestep_emg_11 = [50.398, 57.531, 57.931, 70.13]
+    timestep_emg_13 = [214.69, 223.09, 223.09, 236.139]
+    timestep_emg_14 = [295.103, 303.336, 303.686, 316.469]
+
+    yt = [([], [], []) for _ in range(3)]  # number of muscle
+    for j in range(len(muscle_idx)):
+        for i in range(int(len(timestep_emg_11) / 2)):
+            yt[0][j].append(resample_by_len(cz_11[j, find_nearest_idx(t_cz_11, timestep_emg_11[2 * i]):
+                                                     find_nearest_idx(t_cz_11, timestep_emg_11[2 * i + 1])], unified_len))
+            yt[1][j].append(resample_by_len(cz_13[j, find_nearest_idx(t_cz_13, timestep_emg_13[2 * i]):
+                                                     find_nearest_idx(t_cz_13, timestep_emg_13[2 * i + 1])], unified_len))
+            yt[2][j].append(resample_by_len(cz_14[j, find_nearest_idx(t_cz_14, timestep_emg_14[2 * i]):
+                                                     find_nearest_idx(t_cz_14, timestep_emg_14[2 * i + 1])], unified_len))
+
+    yt = np.asarray(yt)
+    # plt.figure()
+    # plt.subplot(311)
+    # for i in range(3):
+    #     plt.plot(yt[i, 0, 0, :])
+    #     plt.plot(yt[i, 0, 2, :])
+    #     plt.plot(yt[i, 0, 4, :])
+    # plt.subplot(312)
+    # for i in range(3):
+    #     plt.plot(yt[i, 1, 0, :])
+    #     plt.plot(yt[i, 1, 2, :])
+    #     plt.plot(yt[i, 1, 4, :])
+    # plt.subplot(313)
+    # for i in range(3):
+    #     plt.plot(yt[i, 2, 0, :])
+    #     plt.plot(yt[i, 2, 2, :])
+    #     plt.plot(yt[i, 2, 4, :])
+    #
+    # plt.figure()
+    # plt.subplot(311)
+    # for i in range(3):
+    #     plt.plot(yt[i, 0, 1, :])
+    #     plt.plot(yt[i, 0, 3, :])
+    #     plt.plot(yt[i, 0, 5, :])
+    # plt.subplot(312)
+    # for i in range(3):
+    #     plt.plot(yt[i, 1, 1, :])
+    #     plt.plot(yt[i, 1, 3, :])
+    #     plt.plot(yt[i, 1, 5, :])
+    # plt.subplot(313)
+    # for i in range(3):
+    #     plt.plot(yt[i, 2, 1, :])
+    #     plt.plot(yt[i, 2, 3, :])
+    #     plt.plot(yt[i, 2, 5, :])
+
+    plt.figure(figsize=(6, 6.7))
+    data = [([]) for _ in range(len(muscle_idx))]
+    for k in range(len(muscle_idx)):
+        for i in range(3):  # three weights
+                data[k].append(np.concatenate([yt[i, k, 0, :], yt[i, k, 1, :]]))
+    data = np.asarray(data)
+    data_mean = np.ones([data.shape[0], data.shape[2]])
+    data_std = np.ones([data.shape[0], data.shape[2]])
+    for i in range(len(muscle_idx)):  # three muscles
+        data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
+        data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
+    color = ['#1f77b4', '#ff7f0e', '#2ca02c']
+    label = ['10kg', '12.5kg', '15kg']
+    plt.subplot(311)
+    for i in range(data.shape[1]):
+        plt.plot(data[0, i, :], color=color[i % 3])
+    plt.ylabel('bic', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(312)
+    for i in range(data.shape[1]):
+        plt.plot(data[1, i, :], color=color[i % 3])
+    plt.ylabel('brachialis', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(313)
+    for i in range(data.shape[1]):
+        plt.plot(data[2, i, :], color=color[i % 3])
+    # for i in range(data.shape[1]):
+    #     if i < 3:
+    #         plt.plot(data[2, i, :], color=color[i % 3], label=label[i])
+    #     else:
+    #         plt.plot(data[2, i, :], color=color[i % 3])
+    plt.legend()
+    plt.ylabel('brachiorad', weight='bold')
+    plt.xlabel('timestep', weight='bold')
+
+    plt.figure(figsize=(6, 6.7))
+    plt.subplot(311)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
+    plt.ylabel('bic', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(312)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1])
+    plt.ylabel('brachialis', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(313)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2])
+    plt.ylabel('brachiorad', weight='bold')
+    plt.xlabel('timestep', weight='bold')
+
+    plt.figure(figsize=(6, 6.7))
+    plt.subplot(311)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0], color='papayawhip')
+    for i in range(data.shape[1]):
+        plt.plot(data[0, i, :], color=color[i % 3])
+    plt.ylabel('bic', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(312)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1], color='papayawhip')
+    for i in range(data.shape[1]):
+        plt.plot(data[1, i, :], color=color[i % 3])
+    plt.ylabel('brachialis', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(313)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2], color='papayawhip')
+    for i in range(data.shape[1]):
+        plt.plot(data[2, i, :], color=color[i % 3])
+    plt.xlabel('timestep', weight='bold')
+
+    np.save('emg/chenzui_mean', data_mean)
+    np.save('emg/chenzui_std', data_std)
+
+    # print(np.max(yt[:, 0, :, :]))
+    # print(np.max(yt[:, 1, :, :]))
+    # print(np.max(yt[:, 2, :, :]))
+    # print(np.max(yt[:, 3, :, :]))
+    # print(np.max(yt[:, 4, :, :]))
+    plt.show()
+
+
 def calculate_torque():
     # emg = pd.read_excel('files/CHENYuetian_10kg.xlsx')
     so_act = pd.read_excel('files/modelModified_StaticOptimization_activation.xlsx')
@@ -741,9 +1130,11 @@ def calculate_torque():
 
 if __name__ == '__main__':
     # calculate_emg_distribution()
-    calculate_torque()
+    # calculate_chenzui_emg_distribution()
+    # calculate_torque()
     # print(calc_fal(0.1, 'bic_s_l'))
     emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_realted_files()
+    # emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_chenzui_realted_files()
     # plt.figure()
     # plt.subplot(311)
     # plt.plot(fa[0])
@@ -794,7 +1185,7 @@ if __name__ == '__main__':
     emg = np.asarray(emg)
     time_emg = np.asarray(time_emg)
 
-    action_idx = 1
+    action_idx = 0
     fa = fa[:, action_idx, :]
     arm = arm[:, action_idx, :]
     time = time[action_idx, :]
@@ -808,6 +1199,7 @@ if __name__ == '__main__':
     # noise = np.random.normal(0, 1, to.shape)
     # torque = to + noise
     torque = torque[action_idx, :]
+    # torque = torque - torque[0]
 
     m = gekko.GEKKO(remote=False)
     x = m.Array(m.Var, arm.shape, lb=0, ub=1)  # activation
@@ -826,8 +1218,8 @@ if __name__ == '__main__':
             # m.Equation(sum(f[:, j] * arm[:, j]) >= torque[j] * 0.9)
             # m.Equation(sum(f[:, j] * arm[:, j]) <= torque[j] + 10)
             # m.Equation(sum(f[:, j] * arm[:, j]) >= torque[j] - 10)
-        m.Equations([y[i] >= 0.1 * iso[i], y[i] <= 30 * iso[i]])
-        # m.Equations([y[i] >= 0.5 * iso[i], y[i] <= 3 * iso[i]])
+        # m.Equations([y[i] >= 0.1 * iso[i], y[i] <= 30 * iso[i]])
+        m.Equations([y[i] >= 0.5 * iso[i], y[i] <= 3 * iso[i]])
     # m.options.MAX_ITER = 100000
     m.solve(disp=False)
     # print(x)
@@ -877,7 +1269,7 @@ if __name__ == '__main__':
 
     # plt.figure(figsize=(6, 6.7))
     plt.figure(figsize=(6, 7.7))
-    plt.subplot(611)
+    plt.subplot(411)
     plt.plot(time, np.asarray(t), label='optimization', linewidth=2)
     plt.plot(time, torque, label='measured', linewidth=2)
     # plt.xlabel('time (s)')
@@ -886,39 +1278,60 @@ if __name__ == '__main__':
     rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
     print("torque rmse:\t", "{:.2f}".format(rmse))
 
-    plt.subplot(612)
+    plt.subplot(412)
     plt.errorbar(time_long, emg_mean_long[0, :], 2 * emg_std_long[0, :], label='emg', color='lavender', zorder=1)
     plt.plot(time, np.asarray(r[0, :]), label='optimization', linewidth=2, zorder=2)
+    # plt.plot(time, np.asarray(emg[0]), label='emg', linewidth=2, zorder=3)
     # plt.xlabel('time (s)')
     plt.ylabel('bic_s_l', weight='bold')
     plt.legend()
 
-    plt.subplot(613)
+    plt.subplot(413)
     plt.errorbar(time_long, emg_mean_long[1, :], 2 * emg_std_long[1, :], label='emg', color='lavender', zorder=1)
     plt.plot(time, np.asarray(r[1, :]), label='optimization', linewidth=2, zorder=2)
+    # plt.plot(time, np.asarray(emg[1]), label='emg', linewidth=2, zorder=3)
     # plt.xlabel('time (s)')
     plt.ylabel('brachialis_1_l', weight='bold')
     plt.legend()
 
     # plt.figure()
-    plt.subplot(614)
+    plt.subplot(414)
     plt.errorbar(time_long, emg_mean_long[2, :], 2 * emg_std_long[2, :], label='emg', color='lavender', zorder=1)
     plt.plot(time, np.asarray(r[2, :]), label='optimization', linewidth=2, zorder=2)
+    # plt.plot(time, np.asarray(emg[2]), label='emg', linewidth=2, zorder=3)
     plt.xlabel('time (s)', weight='bold')
     plt.ylabel('brachiorad_1_l', weight='bold')
     plt.legend()
 
-    plt.subplot(615)
-    plt.errorbar(time_long, emg_mean_long[3, :], 2 * emg_std_long[3, :], label='emg', color='lavender', zorder=1)
-    plt.plot(time, np.asarray(r[3, :]), label='optimization', linewidth=2, zorder=2)
-    plt.xlabel('time (s)', weight='bold')
-    plt.ylabel('TRIlong', weight='bold')
-    plt.legend()
+    # plt.figure(figsize=(6, 7.7))
+    # plt.subplot(311)
+    # plt.plot(time, np.asarray(emg[0]), label='emg', linewidth=2, zorder=3)
+    # plt.ylabel('bic_s_l', weight='bold')
+    # plt.legend()
+    #
+    # plt.subplot(312)
+    # plt.plot(time, np.asarray(emg[1]), label='emg', linewidth=2, zorder=3)
+    # # plt.xlabel('time (s)')
+    # plt.ylabel('brachialis_1_l', weight='bold')
+    # plt.legend()
+    #
+    # plt.subplot(313)
+    # plt.plot(time, np.asarray(emg[2]), label='emg', linewidth=2, zorder=3)
+    # plt.xlabel('time (s)', weight='bold')
+    # plt.ylabel('brachiorad_1_l', weight='bold')
+    # plt.legend()
 
-    plt.subplot(616)
-    plt.errorbar(time_long, emg_mean_long[4, :], 2 * emg_std_long[4, :], label='emg', color='lavender', zorder=1)
-    plt.plot(time, np.asarray(r[4, :]), label='optimization', linewidth=2, zorder=2)
-    plt.xlabel('time (s)', weight='bold')
-    plt.ylabel('TRIlat', weight='bold')
-    plt.legend()
+    # plt.subplot(615)
+    # plt.errorbar(time_long, emg_mean_long[3, :], 2 * emg_std_long[3, :], label='emg', color='lavender', zorder=1)
+    # plt.plot(time, np.asarray(r[3, :]), label='optimization', linewidth=2, zorder=2)
+    # plt.xlabel('time (s)', weight='bold')
+    # plt.ylabel('TRIlong', weight='bold')
+    # plt.legend()
+    #
+    # plt.subplot(616)
+    # plt.errorbar(time_long, emg_mean_long[4, :], 2 * emg_std_long[4, :], label='emg', color='lavender', zorder=1)
+    # plt.plot(time, np.asarray(r[4, :]), label='optimization', linewidth=2, zorder=2)
+    # plt.xlabel('time (s)', weight='bold')
+    # plt.ylabel('TRIlat', weight='bold')
+    # plt.legend()
     plt.show()
