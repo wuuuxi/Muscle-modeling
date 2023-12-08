@@ -21,17 +21,17 @@ import gekko
 #        202, 208, 236, 62, 140, 50,
 #        236, 236, 1020, 94, 196]
 
-# muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l']
-# OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404]
-# MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
-# PennationAngleAtOptimal = [0, 0, 0]
-# KshapeActive = [0.45, 0.45, 0.45]
+muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l']
+OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404]
+MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
+PennationAngleAtOptimal = [0, 0, 0]
+KshapeActive = [0.45, 0.45, 0.45]
 
-muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l', 'tric_long_1_l']
-OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404, 0.09027865826431776]
-MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
-PennationAngleAtOptimal = [0, 0, 0, 0.174532925199]
-KshapeActive = [0.45, 0.45, 0.45, 0.45]
+# muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l', 'tric_long_1_l']
+# OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404, 0.09027865826431776]
+# MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
+# PennationAngleAtOptimal = [0, 0, 0, 0.174532925199]
+# KshapeActive = [0.45, 0.45, 0.45, 0.45]
 
 all_muscles = ['bic_s_l', 'bic_l_l',
                'brachialis_1_l', 'brachialis_2_l', 'brachialis_3_l', 'brachialis_4_l', 'brachialis_5_l',
@@ -58,8 +58,10 @@ iso = [173, 314, 30, 223]
 emg_lift_len = 1000
 target_len = 50
 # emg related
-fs = 1000
+# fs = 2000
 only_lift = True
+mvc_is_variable = False
+plot_distribution = True
 
 
 def b_spline_basis(i, p, u, nodeVector):
@@ -174,7 +176,7 @@ def createFiberActiveForceLengthCurve(x0, x1, x2, x3, ylow, dydx, curviness, com
     ctrlPtsY = [p0[1], p1[1], p2[1], p3[1], p4[1]]
 
 
-def emg_rectification(x, Fs, code=None):
+def emg_rectification(x, Fs=1000, code=None):
     # Fs 采样频率，在EMG信号中是1000Hz
     x_mean = np.mean(x)
     raw = x - x_mean * np.ones_like(x)
@@ -419,7 +421,7 @@ def read_realted_files():
             emg[0][i].append(emg_BIC[idx])
             emg[1][i].append(emg_BRA[idx])
             emg[2][i].append(emg_BRD[idx])
-            emg[3][i].append(emg_TRIlong[idx])
+            # emg[3][i].append(emg_TRIlong[idx])
             # emg[4][i].append(emg_TRIlat[idx])
 
     # yt = [([], [], []) for _ in range(len(muscle_idx))]
@@ -494,32 +496,38 @@ def read_realted_files():
     return emg_mean_out, emg_std_out, arm_out, fa_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg
 
 
-def read_chenzui_realted_files():
+def read_chenzui_realted_files(label='11'):
     fs = 2000
-    # emg = np.load('files/chenzui/emg-11.npy')
-    # moment = pd.read_excel('files/chenzui/inverse_dynamics-11.xlsx')
-    # length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-11.xlsx')
-    # tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-11.xlsx')
-    # momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-11.xlsx')
-    # emg = np.load('files/chenzui/emg-13.npy')
-    # moment = pd.read_excel('files/chenzui/inverse_dynamics-13.xlsx')
-    # length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-13.xlsx')
-    # tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-13.xlsx')
-    # momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-13.xlsx')
-    emg = np.load('files/chenzui/emg-14.npy')
-    moment = pd.read_excel('files/chenzui/inverse_dynamics-14.xlsx')
-    length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-14.xlsx')
-    tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-14.xlsx')
-    momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-14.xlsx')
+    if label == '11':
+        emg = np.load('files/chenzui/emg-11.npy')
+        moment = pd.read_excel('files/chenzui/inverse_dynamics-11.xlsx')
+        length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-11.xlsx')
+        tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-11.xlsx')
+        momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-11.xlsx')
+    elif label == '13':
+        emg = np.load('files/chenzui/emg-13.npy')
+        moment = pd.read_excel('files/chenzui/inverse_dynamics-13.xlsx')
+        length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-13.xlsx')
+        tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-13.xlsx')
+        momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-13.xlsx')
+    elif label == '14':
+        emg = np.load('files/chenzui/emg-14.npy')
+        moment = pd.read_excel('files/chenzui/inverse_dynamics-14.xlsx')
+        length = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_Length-14.xlsx')
+        tenlen = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_TendonLength-14.xlsx')
+        momarm = pd.read_excel('files/chenzui/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-14.xlsx')
     emg_mean = np.load('emg/chenzui_mean.npy')
     emg_std = np.load('emg/chenzui_std.npy')
 
     time_torque = moment['time']
     time_momarm = momarm['time']
 
-    # timestep_emg = [50.398, 57.531, 57.931, 70.13]
-    # timestep_emg = [214.69, 223.09, 223.09, 236.139]
-    timestep_emg = [295.103, 303.336, 303.686, 316.469]
+    if label == '11':
+        timestep_emg = [50.398, 57.531, 57.931, 70.13]
+    elif label == '13':
+        timestep_emg = [214.69, 223.09, 223.09, 236.139]
+    elif label == '14':
+        timestep_emg = [295.103, 303.336, 303.686, 316.469]
     t_tor = []
     t_arm = []
     tor = []
@@ -589,9 +597,12 @@ def read_chenzui_realted_files():
     [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD')
     # [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
     # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
-    # t1 = t1 - 4.131 + 45.182  # 11
-    # t1 = t1 - 4.763 + 209.74  # 13
-    t1 = t1 - 7.0005 + 289.653  # 14
+    if label == '11':
+        t1 = t1 - 4.131 + 45.182  # 11
+    elif label == '13':
+        t1 = t1 - 4.763 + 209.74  # 13
+    elif label == '14':
+        t1 = t1 - 7.0005 + 289.653  # 14
 
     # plt.figure(figsize=(6, 7.7))
     # plt.subplot(311)
@@ -711,7 +722,7 @@ def read_chenzui_realted_files():
     return emg_mean_out, emg_std_out, arm_out, fa_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg
 
 
-def emg_file_progressing(emg):
+def emg_file_progressing(emg, fs=1000):
     # [emg_BIC, t1] = emg_rectification(emg['BIC'], fs, 'BIC')
     # [emg_BRA, t2] = emg_rectification(emg['BRA'], fs, 'BRA')
     # [emg_BRD, t3] = emg_rectification(emg['BRD'], fs, 'BRD')
@@ -924,26 +935,44 @@ def calculate_emg_distribution():
 
 def calculate_chenzui_emg_distribution():
     unified_len = 1000
+    fs = 2000
+    data_set_number = 7
     cz_11 = np.load('files/chenzui/emg-11.npy')
     cz_13 = np.load('files/chenzui/emg-13.npy')
     cz_14 = np.load('files/chenzui/emg-14.npy')
+    cz_15 = np.load('files/chenzui/emg-15.npy')
+    cz_16 = np.load('files/chenzui/emg-16.npy')
+    cz_17 = np.load('files/chenzui/emg-17.npy')
+    cz_18 = np.load('files/chenzui/emg-18.npy')
 
     def step(time):
-        return int(time * 1000 - 1)
+        return int(time * 2000 - 1)
 
-    [cz_11, t_cz_11] = emg_file_progressing(cz_11)
-    [cz_13, t_cz_13] = emg_file_progressing(cz_13)
-    [cz_14, t_cz_14] = emg_file_progressing(cz_14)
+    [cz_11, t_cz_11] = emg_file_progressing(cz_11, fs)
+    [cz_13, t_cz_13] = emg_file_progressing(cz_13, fs)
+    [cz_14, t_cz_14] = emg_file_progressing(cz_14, fs)
+    [cz_15, t_cz_15] = emg_file_progressing(cz_15, fs)
+    [cz_16, t_cz_16] = emg_file_progressing(cz_16, fs)
+    [cz_17, t_cz_17] = emg_file_progressing(cz_17, fs)
+    [cz_18, t_cz_18] = emg_file_progressing(cz_18, fs)
     # [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
     # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
     t_cz_11 = t_cz_11 - 4.131 + 45.182  # 11
     t_cz_13 = t_cz_13 - 4.763 + 209.74  # 13
     t_cz_14 = t_cz_14 - 7.0005 + 289.653  # 14
+    t_cz_15 = t_cz_15 - 14.9555 + 391.032  # 15
+    t_cz_16 = t_cz_16 - 4.7075 + 482.544  # 16
+    t_cz_17 = t_cz_17 - 4.426 + 563.707  # 17
+    t_cz_18 = t_cz_18 - 4.03 + 638.553  # 15
     timestep_emg_11 = [50.398, 57.531, 57.931, 70.13]
     timestep_emg_13 = [214.69, 223.09, 223.09, 236.139]
     timestep_emg_14 = [295.103, 303.336, 303.686, 316.469]
+    timestep_emg_15 = [395.348, 402.648, 403.398, 415.981]
+    timestep_emg_16 = [487.627, 495.31, 495.493, 509.676]
+    timestep_emg_17 = [568.907, 577.106, 577.106, 590.106]
+    timestep_emg_18 = [644.553, 653.669, 653.669, 668.352]
 
-    yt = [([], [], []) for _ in range(3)]  # number of muscle
+    yt = [([], [], []) for _ in range(data_set_number)]  # number of muscle
     for j in range(len(muscle_idx)):
         for i in range(int(len(timestep_emg_11) / 2)):
             yt[0][j].append(resample_by_len(cz_11[j, find_nearest_idx(t_cz_11, timestep_emg_11[2 * i]):
@@ -952,6 +981,15 @@ def calculate_chenzui_emg_distribution():
                                                      find_nearest_idx(t_cz_13, timestep_emg_13[2 * i + 1])], unified_len))
             yt[2][j].append(resample_by_len(cz_14[j, find_nearest_idx(t_cz_14, timestep_emg_14[2 * i]):
                                                      find_nearest_idx(t_cz_14, timestep_emg_14[2 * i + 1])], unified_len))
+            yt[3][j].append(resample_by_len(cz_15[j, find_nearest_idx(t_cz_15, timestep_emg_15[2 * i]):
+                                                     find_nearest_idx(t_cz_15, timestep_emg_15[2 * i + 1])], unified_len))
+            yt[4][j].append(resample_by_len(cz_16[j, find_nearest_idx(t_cz_16, timestep_emg_16[2 * i]):
+                                                     find_nearest_idx(t_cz_16, timestep_emg_16[2 * i + 1])], unified_len))
+            yt[5][j].append(resample_by_len(cz_17[j, find_nearest_idx(t_cz_17, timestep_emg_17[2 * i]):
+                                                     find_nearest_idx(t_cz_17, timestep_emg_17[2 * i + 1])], unified_len))
+            yt[6][j].append(resample_by_len(cz_18[j, find_nearest_idx(t_cz_18, timestep_emg_18[2 * i]):
+                                                     find_nearest_idx(t_cz_18, timestep_emg_18[2 * i + 1])],
+                                            unified_len))
 
     yt = np.asarray(yt)
     # plt.figure()
@@ -991,7 +1029,7 @@ def calculate_chenzui_emg_distribution():
     plt.figure(figsize=(6, 6.7))
     data = [([]) for _ in range(len(muscle_idx))]
     for k in range(len(muscle_idx)):
-        for i in range(3):  # three weights
+        for i in range(data_set_number):
                 data[k].append(np.concatenate([yt[i, k, 0, :], yt[i, k, 1, :]]))
     data = np.asarray(data)
     data_mean = np.ones([data.shape[0], data.shape[2]])
@@ -999,29 +1037,28 @@ def calculate_chenzui_emg_distribution():
     for i in range(len(muscle_idx)):  # three muscles
         data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
         data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
-    color = ['#1f77b4', '#ff7f0e', '#2ca02c']
-    label = ['10kg', '12.5kg', '15kg']
+    color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     plt.subplot(311)
     for i in range(data.shape[1]):
-        plt.plot(data[0, i, :], color=color[i % 3])
+        plt.plot(data[0, i, :], color=color[i % len(color)])
     plt.ylabel('bic', weight='bold')
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     plt.subplot(312)
     for i in range(data.shape[1]):
-        plt.plot(data[1, i, :], color=color[i % 3])
+        plt.plot(data[1, i, :], color=color[i % len(color)])
     plt.ylabel('brachialis', weight='bold')
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     plt.subplot(313)
     for i in range(data.shape[1]):
-        plt.plot(data[2, i, :], color=color[i % 3])
+        plt.plot(data[2, i, :], color=color[i % len(color)])
     # for i in range(data.shape[1]):
     #     if i < 3:
     #         plt.plot(data[2, i, :], color=color[i % 3], label=label[i])
     #     else:
     #         plt.plot(data[2, i, :], color=color[i % 3])
-    plt.legend()
+    # plt.legend()
     plt.ylabel('brachiorad', weight='bold')
     plt.xlabel('timestep', weight='bold')
 
@@ -1045,21 +1082,21 @@ def calculate_chenzui_emg_distribution():
     plt.subplot(311)
     plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0], color='papayawhip')
     for i in range(data.shape[1]):
-        plt.plot(data[0, i, :], color=color[i % 3])
+        plt.plot(data[0, i, :], color=color[i % len(color)])
     plt.ylabel('bic', weight='bold')
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     plt.subplot(312)
     plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1], color='papayawhip')
     for i in range(data.shape[1]):
-        plt.plot(data[1, i, :], color=color[i % 3])
+        plt.plot(data[1, i, :], color=color[i % len(color)])
     plt.ylabel('brachialis', weight='bold')
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     plt.subplot(313)
     plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2], color='papayawhip')
     for i in range(data.shape[1]):
-        plt.plot(data[2, i, :], color=color[i % 3])
+        plt.plot(data[2, i, :], color=color[i % len(color)])
     plt.xlabel('timestep', weight='bold')
 
     np.save('emg/chenzui_mean', data_mean)
@@ -1133,8 +1170,9 @@ if __name__ == '__main__':
     # calculate_chenzui_emg_distribution()
     # calculate_torque()
     # print(calc_fal(0.1, 'bic_s_l'))
-    emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_realted_files()
-    # emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_chenzui_realted_files()
+    # emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_realted_files()
+    emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_chenzui_realted_files(
+        label='13')
     # plt.figure()
     # plt.subplot(311)
     # plt.plot(fa[0])
@@ -1199,33 +1237,43 @@ if __name__ == '__main__':
     # noise = np.random.normal(0, 1, to.shape)
     # torque = to + noise
     torque = torque[action_idx, :]
-    # torque = torque - torque[0]
+    torque = torque - torque[0]
 
     m = gekko.GEKKO(remote=False)
     x = m.Array(m.Var, arm.shape, lb=0, ub=1)  # activation
     y = m.Array(m.Var, len(muscle_idx))  # maximum isometric force
+    c = m.Array(m.Var, len(muscle_idx))  # MVC emg
     f = m.Array(m.Var, arm.shape)  # muscle force
     t = m.Array(m.Var, torque.shape)  # torque
     # m.Minimize(np.square(x - emg).mean())
     m.Minimize(np.square(t - torque).mean())
     for i in range(arm.shape[0]):
         for j in range(arm.shape[1]):
-            m.Equation(x[i][j] * y[i] == f[i, j])
+            # m.Equation(x[i][j] * y[i] == f[i, j])
+            m.Equation(x[i][j] * y[i] * fa[i][j] == f[i, j])
             m.Equation(sum(f[:, j] * arm[:, j]) == t[j])
-            m.Equation(x[i][j] <= emg_mean[i][j] + emg_std[i][j] * 2)
-            m.Equation(x[i][j] >= emg_mean[i][j] - emg_std[i][j] * 2)
-            # m.Equation(sum(f[:, j] * arm[:, j]) <= torque[j] * 1.1)
-            # m.Equation(sum(f[:, j] * arm[:, j]) >= torque[j] * 0.9)
-            # m.Equation(sum(f[:, j] * arm[:, j]) <= torque[j] + 10)
-            # m.Equation(sum(f[:, j] * arm[:, j]) >= torque[j] - 10)
+            if mvc_is_variable is True:
+                m.Equation(x[i][j] <= (emg_mean[i][j] * c[i] + emg_std[i][j] * c[i] * 2))
+                m.Equation(x[i][j] >= (emg_mean[i][j] * c[i] - emg_std[i][j] * c[i] * 2))
+                m.Equation((emg_mean[i][j] * c[i] + emg_std[i][j] * c[i] * 2) <= 1)
+                # m.Equation((emg_mean[i][j] * c[i] - emg_std[i][j] * c[i] * 2) >= 0)
+            else:
+                m.Equation(x[i][j] <= (emg_mean[i][j] + emg_std[i][j] * 2))
+                m.Equation(x[i][j] >= (emg_mean[i][j] - emg_std[i][j] * 2))
         # m.Equations([y[i] >= 0.1 * iso[i], y[i] <= 30 * iso[i]])
         m.Equations([y[i] >= 0.5 * iso[i], y[i] <= 3 * iso[i]])
+        if mvc_is_variable is True:
+            m.Equations([c[i] >= 0.01, c[i] <= 5])
     # m.options.MAX_ITER = 100000
     m.solve(disp=False)
     # print(x)
     # print(y)
     for i in range(y.size):
         print(muscle_idx[i], ':\t', "{:.2f}".format(np.asarray(y)[i].value[0]))
+    if mvc_is_variable is True:
+        print('-' * 50)
+        for i in range(c.size):
+            print(muscle_idx[i], ':\t', "{:.2f}".format(np.asarray(c)[i].value[0]))
 
     r = np.ones_like(x)
     for i in range(x.shape[0]):
@@ -1279,26 +1327,44 @@ if __name__ == '__main__':
     print("torque rmse:\t", "{:.2f}".format(rmse))
 
     plt.subplot(412)
-    plt.errorbar(time_long, emg_mean_long[0, :], 2 * emg_std_long[0, :], label='emg', color='lavender', zorder=1)
+    if plot_distribution is True:
+        if mvc_is_variable is True:
+            plt.errorbar(time_long, emg_mean_long[0, :] * c[0], 2 * emg_std_long[0, :] * c[0], label='emg',
+                         color='lavender', zorder=1)
+        else:
+            plt.errorbar(time_long, emg_mean_long[0, :], 2 * emg_std_long[0, :], label='emg', color='lavender', zorder=1)
+    else:
+        plt.plot(time, np.asarray(emg[0]), label='emg', linewidth=2, zorder=3)
     plt.plot(time, np.asarray(r[0, :]), label='optimization', linewidth=2, zorder=2)
-    # plt.plot(time, np.asarray(emg[0]), label='emg', linewidth=2, zorder=3)
     # plt.xlabel('time (s)')
     plt.ylabel('bic_s_l', weight='bold')
     plt.legend()
 
     plt.subplot(413)
-    plt.errorbar(time_long, emg_mean_long[1, :], 2 * emg_std_long[1, :], label='emg', color='lavender', zorder=1)
+    if plot_distribution is True:
+        if mvc_is_variable is True:
+            plt.errorbar(time_long, emg_mean_long[1, :] * c[1], 2 * emg_std_long[1, :] * c[1], label='emg',
+                         color='lavender', zorder=1)
+        else:
+            plt.errorbar(time_long, emg_mean_long[1, :], 2 * emg_std_long[1, :], label='emg', color='lavender', zorder=1)
+    else:
+        plt.plot(time, np.asarray(emg[1]), label='emg', linewidth=2, zorder=3)
     plt.plot(time, np.asarray(r[1, :]), label='optimization', linewidth=2, zorder=2)
-    # plt.plot(time, np.asarray(emg[1]), label='emg', linewidth=2, zorder=3)
     # plt.xlabel('time (s)')
     plt.ylabel('brachialis_1_l', weight='bold')
     plt.legend()
 
     # plt.figure()
     plt.subplot(414)
-    plt.errorbar(time_long, emg_mean_long[2, :], 2 * emg_std_long[2, :], label='emg', color='lavender', zorder=1)
+    if plot_distribution is True:
+        if mvc_is_variable is True:
+            plt.errorbar(time_long, emg_mean_long[2, :] * c[2], 2 * emg_std_long[2, :] * c[2], label='emg',
+                         color='lavender', zorder=1)
+        else:
+            plt.errorbar(time_long, emg_mean_long[2, :], 2 * emg_std_long[2, :], label='emg', color='lavender', zorder=1)
+    else:
+        plt.plot(time, np.asarray(emg[2]), label='emg', linewidth=2, zorder=3)
     plt.plot(time, np.asarray(r[2, :]), label='optimization', linewidth=2, zorder=2)
-    # plt.plot(time, np.asarray(emg[2]), label='emg', linewidth=2, zorder=3)
     plt.xlabel('time (s)', weight='bold')
     plt.ylabel('brachiorad_1_l', weight='bold')
     plt.legend()
