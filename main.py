@@ -22,6 +22,7 @@ import gekko
 #        236, 236, 1020, 94, 196]
 
 muscle_idx = ['bic_s_l', 'brachialis_1_l', 'brachiorad_1_l']
+# muscle_idx = ['bic_s', 'brachialis_1', 'brachiorad_1']
 OptimalFiberLength = [0.10740956509395153, 0.0805163842230218, 0.15631665675596404]
 MaximumPennationAngle = [1.4706289056333368, 1.4706289056333368, 1.4706289056333368]
 PennationAngleAtOptimal = [0, 0, 0]
@@ -54,16 +55,17 @@ all_iso = [173, 347,
 # iso = [346, 628, 60, 446.0]
 # iso = [173 * 2, 314 * 7, 30 * 3]
 iso = [173, 314, 30]
-iso1 = [100, 100, 15]
-iso2 = [1000, 1200, 500]
+iso1 = [100, 100, 10]
+iso2 = [6000, 6000, 3000]
 # iso = [173, 314, 30, 223]
 emg_lift_len = 1000
-target_len = 40
+target_len = 20
 # emg related
 # fs = 2000
 only_lift = False
 mvc_is_variable = False
 plot_distribution = True
+test_plot_distribution = False
 include_TRI = False
 torque_init_0 = False
 
@@ -180,7 +182,7 @@ def createFiberActiveForceLengthCurve(x0, x1, x2, x3, ylow, dydx, curviness, com
     ctrlPtsY = [p0[1], p1[1], p2[1], p3[1], p4[1]]
 
 
-def emg_rectification(x, Fs=1000, code=None):
+def emg_rectification(x, Fs=1000, code=None, people=None):
     # Fs 采样频率，在EMG信号中是1000Hz
     x_mean = np.mean(x)
     raw = x - x_mean * np.ones_like(x)
@@ -205,17 +207,30 @@ def emg_rectification(x, Fs=1000, code=None):
     #     ref = 42.5301
     # else:
     #     ref = max(EMGLE)
-
-    if code == 'BIC':
-        ref = 407.11
-    elif code == 'BRA':
-        ref = 250.37
-    elif code == 'BRD':
-        ref = 468.31
-    elif code == 'TRI':
-        ref = 467.59
+    if people == 'chenzui':
+        if code == 'BIC':
+            ref = 407.11
+        elif code == 'BRA':
+            ref = 250.37
+        elif code == 'BRD':
+            ref = 468.31
+        elif code == 'TRI':
+            ref = 467.59
+        else:
+            ref = max(EMGLE)
+    elif people == 'zhuo':
+        if code == 'BIC':
+            ref = 417.90
+        elif code == 'BRA':
+            ref = 126.73
+        elif code == 'BRD':
+            ref = 408.73
+        elif code == 'TRI':
+            ref = 250.28
+        else:
+            ref = max(EMGLE)
     else:
-        ref = max(EMGLE)
+        print('No information of this people.')
     # ref = 1
 
     normalized_EMG = EMGLE / ref
@@ -296,293 +311,518 @@ def resample_by_len(orig_list: list, target_len: int):
     return resample_list
 
 
-def read_realted_files():
-    fs = 1000
-    savgol_filter_pra = 20
-    emg = pd.read_excel('files/CHENYuetian_10kg.xlsx')
-    so_act = pd.read_excel('files/modelModified_StaticOptimization_activation.xlsx')
-    moment = pd.read_excel('files/inverse_dynamics.xlsx')
-    length = pd.read_excel('files/modelModified_MuscleAnalysis_Length.xlsx')
-    tenlen = pd.read_excel('files/modelModified_MuscleAnalysis_TendonLength.xlsx')
-    momarm = pd.read_excel('files/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l.xlsx')
-    emg_mean = np.load('emg/yuetian_mean.npy')
-    emg_std = np.load('emg/yuetian_std.npy')
-
-    time_torque = moment['time']
-    # time_length = length['time']
-    time_momarm = momarm['time']
-
-    timestep_emg = [0.500, 2.383, 3.533, 4.749, 5.883, 6.999, 8.316]
-    t_tor = []
-    t_arm = []
-    tor = []
-    arm = [[] for _ in range(len(muscle_idx))]
-    ml = [[] for _ in range(len(muscle_idx))]
-    tl = [[] for _ in range(len(muscle_idx))]
-    fa = [[] for _ in range(len(muscle_idx))]
-    fr = []
-
-    torque = moment['elbow_flex_l_moment']
-    for i in range(len(timestep_emg) - 1):
-        tts = find_nearest_idx(time_torque, timestep_emg[i])
-        tte = find_nearest_idx(time_torque, timestep_emg[i + 1])
-        a = resample_by_len(list(time_torque[tts:tte]), target_len)
-        t_tor.append(resample_by_len(list(time_torque[tts:tte]), target_len))
-        tor.append(resample_by_len(list(torque[tts:tte]), target_len))
-
-        tms = find_nearest_idx(time_momarm, timestep_emg[i])
-        tme = find_nearest_idx(time_momarm, timestep_emg[i + 1])
-        t_arm.append(resample_by_len(list(time_momarm[tms:tme]), target_len))
-        for j in range(len(muscle_idx)):
-            arm[j].append(resample_by_len(list(momarm[muscle_idx[j]][tms:tme]), target_len))
-            ml[j].append(resample_by_len(list(length[muscle_idx[j]][tms:tme]), target_len))
-            tl[j].append(resample_by_len(list(tenlen[muscle_idx[j]][tms:tme]), target_len))
-            for k in range(tms, tme):
-                fr.append(calc_fal(length[muscle_idx[j]][k], tenlen[muscle_idx[j]][k], muscle_idx[j]))
-            fa[j].append(resample_by_len(fr, target_len))
-            fr = []
-
-    t_tor_out = []  # 3 actions
-    t_arm_out = []
-    emg_mean_out = []
-    emg_std_out = []
-    tor_out = []
-    arm_out = [[] for _ in range(len(muscle_idx))]
-    ml_out = [[] for _ in range(len(muscle_idx))]
-    tl_out = [[] for _ in range(len(muscle_idx))]
-    fa_out = [[] for _ in range(len(muscle_idx))]
-    for i in range(len(muscle_idx)):
-        if only_lift is False:
-            emg_mean_out.append(resample_by_len(emg_mean[i, :], target_len * 2))
-            emg_std_out.append(resample_by_len(emg_std[i, :], target_len * 2))
-            for j in range(3):  # 3 actions
-                arm_out[i].append(np.concatenate([arm[i][int(2 * j)], arm[i][int(2 * j + 1)]]))
-                ml_out[i].append(np.concatenate([ml[i][int(2 * j)], ml[i][int(2 * j + 1)]]))
-                tl_out[i].append(np.concatenate([tl[i][int(2 * j)], tl[i][int(2 * j + 1)]]))
-                fa_out[i].append(np.concatenate([fa[i][int(2 * j)], fa[i][int(2 * j + 1)]]))
-        else:
-            emg_mean = emg_mean[:, :emg_lift_len]
-            emg_std = emg_std[:, :emg_lift_len]
-            emg_mean_out.append(resample_by_len(emg_mean[i, :], target_len))
-            emg_std_out.append(resample_by_len(emg_std[i, :], target_len))
-            for j in range(3):  # 3 actions
-                arm_out[i].append(arm[i][int(2 * j)])
-                ml_out[i].append(ml[i][int(2 * j)])
-                tl_out[i].append(tl[i][int(2 * j)])
-                fa_out[i].append(fa[i][int(2 * j)])
-
-    if only_lift is False:
-        for j in range(3):  # 3 actions
-            t_tor_out.append(np.concatenate([t_tor[int(2 * j)], t_tor[int(2 * j + 1)]]))
-            t_arm_out.append(np.concatenate([t_arm[int(2 * j)], t_arm[int(2 * j + 1)]]))
-            tor_out.append(np.concatenate([tor[int(2 * j)], tor[int(2 * j + 1)]]))
-    else:
-        for j in range(3):  # 3 actions
-            t_tor_out.append(t_tor[int(2 * j)])
-            t_arm_out.append(t_arm[int(2 * j)])
-            tor_out.append(tor[int(2 * j)])
-
-    [emg_BIC, t1] = emg_rectification(emg['BIC'], fs, 'BIC')
-    [emg_BRA, t2] = emg_rectification(emg['BRA'], fs, 'BRA')
-    [emg_BRD, t3] = emg_rectification(emg['BRD'], fs, 'BRD')
-    [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
-    [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
-    emg = [([], [], []) for _ in range(len(muscle_idx))]
-    time_emg = [[] for _ in range(3)]
-    for i in range(3):  # 3 actions
-        for t in t_tor_out[i]:
-            idx = find_nearest_idx(t1, t)
-            time_emg[i].append(t1[idx])
-            emg[0][i].append(emg_BIC[idx])
-            emg[1][i].append(emg_BRA[idx])
-            emg[2][i].append(emg_BRD[idx])
-            # emg[3][i].append(emg_TRIlong[idx])
-            # emg[4][i].append(emg_TRIlat[idx])
-
-    # yt = [([], [], []) for _ in range(len(muscle_idx))]
-    # for i in range(len(time_yt_10) - 1):
-    #     yt[j].append(resample_by_len(yt_10[j, step(time_yt_10[i]):step(time_yt_10[i + 1])], unified_len))
-
-    # act = [[] for _ in range(len(muscle_idx))]
-    # arm = [[] for _ in range(len(muscle_idx))]
-    # pff = [[] for _ in range(len(muscle_idx))]
-    # ml = [[] for _ in range(len(muscle_idx))]
-    # for i in range(len(muscle_idx)):
-    #     act[i] = scipy.signal.savgol_filter(so_act[muscle_idx[i]], savgol_filter_pra, 3)
-    #     # act[i] = so_act[muscle_idx[i]]
-    #     arm[i] = momarm[muscle_idx[i]]
-    #     pff[i] = pforce[muscle_idx[i]]
-    #     ml[i] = length[muscle_idx[i]]
-    # act = np.asarray(act)
-    # arm = np.asarray(arm)
-    # pff = np.asarray(pff)
-    # ml = np.asarray(ml)
-    # torque = np.asarray(torque)
-
-    # act[0] = so_act['bic_s_l']
-    # act[1] = so_act['brachialis_1_l']
-    # act[2] = so_act['brachiorad_1_l']
-    # act[3] = so_act['tric_long_1_l']
-    # act[3] = so_act['tric_long_2_l']
-    # act[4] = so_act['tric_long_3_l']
-    # act[4] = so_act['tric_long_4_l']
-    # act[5] = so_act['tric_med_1_l']
-    # act[5] = so_act['tric_med_2_l']
-    # act[5] = so_act['tric_med_3_l']
-    # act[5] = so_act['tric_med_4_l']
-    # act[5] = so_act['tric_med_5_l']
-    # act[6] = so_act['bic_l_l']
-    # act[7] = so_act['brachiorad_2_l']
-    # act[8] = so_act['brachiorad_3_l']
-    # act[9] = so_act['brachialis_2_l']
-
-    # ml = [[] for _ in range(10)]
-    # ml[0] = length['bic_s_l']
-    # ml[1] = length['brachialis_1_l']
-    # ml[2] = length['brachiorad_1_l']
-    # ml[3] = length['tric_long_1_l']
-    # ml[4] = length['tric_long_3_l']
-    # ml[5] = length['tric_med_1_l']
-    # ml[6] = length['bic_l_l']
-    # ml[7] = length['brachiorad_2_l']
-    # ml[8] = length['brachiorad_3_l']
-    # ml[9] = length['brachialis_2_l']
-    # length1 = length['bic_s_l']
-    # length2 = length['brachialis_1_l']
-    # length3 = length['brachiorad_1_l']
-
-    # arm = [[] for _ in range(10)]
-    # arm[0] = momarm['bic_s_l']
-    # arm[1] = momarm['brachialis_1_l']
-    # arm[2] = momarm['brachiorad_1_l']
-    # arm[3] = momarm['tric_long_1_l']
-    # arm[4] = momarm['tric_long_3_l']
-    # arm[5] = momarm['tric_med_1_l']
-    # arm[6] = momarm['bic_l_l']
-    # arm[7] = momarm['brachiorad_2_l']
-    # arm[8] = momarm['brachiorad_3_l']
-    # arm[9] = momarm['brachialis_2_l']
-    # # momarm1 = momarm['bic_s_l']
-    # # momarm2 = momarm['brachialis_1_l']
-    # # momarm3 = momarm['brachiorad_1_l']
-    # # momarm4 = momarm['bic_l_l']
-    # # momarm5 = momarm['brachiorad_2_l']
-    # # momarm6 = momarm['brachiorad_3_l']
-    return emg_mean_out, emg_std_out, arm_out, fa_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg
-
-
-def read_chenzui_realted_files(label='11'):
+def read_realted_files(label='chenzui-left-3kg', idx='1'):
+    '''
+    :param label:
+    :param idx:
+    :return: emg_mean_out, emg_std_out, arm_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg, emg_trend_u_out, emg_trend_d_out
+    '''
     fs = 2000
-    if label == '11':
-        emg = np.load('files/chenzui-3kg/emg-11.npy')
-        moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-11.xlsx')
-        length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-11.xlsx')
-        tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-11.xlsx')
-        momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-11.xlsx')
-        # momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_r-11.xlsx')
-    elif label == '13':
-        emg = np.load('files/chenzui-3kg/emg-13.npy')
-        moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-13.xlsx')
-        length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-13.xlsx')
-        tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-13.xlsx')
-        momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-13.xlsx')
-    elif label == '14':
-        emg = np.load('files/chenzui-3kg/emg-14.npy')
-        moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-14.xlsx')
-        length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-14.xlsx')
-        tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-14.xlsx')
-        momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-14.xlsx')
-    elif label == '15':
-        emg = np.load('files/chenzui-3kg/emg-15.npy')
-        moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-15.xlsx')
-        length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-15.xlsx')
-        tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-15.xlsx')
-        momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-15.xlsx')
-    elif label == '17':
-        emg = np.load('files/chenzui-3kg/emg-17.npy')
-        moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-17.xlsx')
-        length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-17.xlsx')
-        tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-17.xlsx')
-        momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-17.xlsx')
-    elif label == '18':
-        emg = np.load('files/chenzui-3kg/emg-18.npy')
-        moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-18.xlsx')
-        length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-18.xlsx')
-        tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-18.xlsx')
-        momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-18.xlsx')
-    elif label == '5.5kg-2':
-        emg = np.load('files/chenzui-5.5kg/2.npy')
-        moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-2.xlsx')
-        length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-2.xlsx')
-        tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-2.xlsx')
-        momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-2.xlsx')
-    elif label == '5.5kg-3':
-        emg = np.load('files/chenzui-5.5kg/3.npy')
-        moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-3.xlsx')
-        length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-3.xlsx')
-        tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-3.xlsx')
-        momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-3.xlsx')
-    elif label == '5.5kg-4':
-        emg = np.load('files/chenzui-5.5kg/4.npy')
-        moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-4.xlsx')
-        length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-4.xlsx')
-        tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-4.xlsx')
-        momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-4.xlsx')
-    elif label == '5.5kg-5':
-        emg = np.load('files/chenzui-5.5kg/5.npy')
-        moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-5.xlsx')
-        length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-5.xlsx')
-        tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-5.xlsx')
-        momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-5.xlsx')
-    elif label == '5.5kg-6':
-        emg = np.load('files/chenzui-5.5kg/6.npy')
-        moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-6.xlsx')
-        length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-6.xlsx')
-        tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-6.xlsx')
-        momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-6.xlsx')
-    elif label == '5.5kg-7':
-        emg = np.load('files/chenzui-5.5kg/7.npy')
-        moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-7.xlsx')
-        length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-7.xlsx')
-        tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-7.xlsx')
-        momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-7.xlsx')
+    # if label == '11':
+    #     emg = np.load('files/chenzui-3kg/emg-11.npy')
+    #     moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-11.xlsx')
+    #     length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-11.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-11.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-11.xlsx')
+    # elif label == '13':
+    #     emg = np.load('files/chenzui-3kg/emg-13.npy')
+    #     moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-13.xlsx')
+    #     length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-13.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-13.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-13.xlsx')
+    # elif label == '14':
+    #     emg = np.load('files/chenzui-3kg/emg-14.npy')
+    #     moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-14.xlsx')
+    #     length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-14.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-14.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-14.xlsx')
+    # elif label == '15':
+    #     emg = np.load('files/chenzui-3kg/emg-15.npy')
+    #     moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-15.xlsx')
+    #     length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-15.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-15.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-15.xlsx')
+    # elif label == '17':
+    #     emg = np.load('files/chenzui-3kg/emg-17.npy')
+    #     moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-17.xlsx')
+    #     length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-17.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-17.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-17.xlsx')
+    # elif label == '18':
+    #     emg = np.load('files/chenzui-3kg/emg-18.npy')
+    #     moment = pd.read_excel('files/chenzui-3kg/inverse_dynamics-18.xlsx')
+    #     length = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_Length-18.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_TendonLength-18.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-3kg/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-18.xlsx')
+    # elif label == '5.5kg-2':
+    #     emg = np.load('files/chenzui-5.5kg/2.npy')
+    #     moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-2.xlsx')
+    #     length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-2.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-2.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-2.xlsx')
+    # elif label == '5.5kg-3':
+    #     emg = np.load('files/chenzui-5.5kg/3.npy')
+    #     moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-3.xlsx')
+    #     length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-3.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-3.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-3.xlsx')
+    # elif label == '5.5kg-4':
+    #     emg = np.load('files/chenzui-5.5kg/4.npy')
+    #     moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-4.xlsx')
+    #     length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-4.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-4.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-4.xlsx')
+    # elif label == '5.5kg-5':
+    #     emg = np.load('files/chenzui-5.5kg/5.npy')
+    #     moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-5.xlsx')
+    #     length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-5.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-5.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-5.xlsx')
+    # elif label == '5.5kg-6':
+    #     emg = np.load('files/chenzui-5.5kg/6.npy')
+    #     moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-6.xlsx')
+    #     length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-6.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-6.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-6.xlsx')
+    # elif label == '5.5kg-7':
+    #     emg = np.load('files/chenzui-5.5kg/7.npy')
+    #     moment = pd.read_excel('files/chenzui-5.5kg/inverse_dynamics-7.xlsx')
+    #     length = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_Length-7.xlsx')
+    #     tenlen = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-7.xlsx')
+    #     momarm = pd.read_excel('files/chenzui-5.5kg/Subject-test-scaled_MuscleAnalysis_TendonLength-7.xlsx')
+    if label == 'chenzui-left-3kg':
+        if idx == '11':
+            emg = np.load('files/chenzui-3kg-1/emg-11.npy')
+            moment = pd.read_excel('files/chenzui-3kg-1/inverse_dynamics-11.xlsx')
+            length = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_Length-11.xlsx')
+            tenlen = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_TendonLength-11.xlsx')
+            momarm = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-11.xlsx')
+        elif idx == '13':
+            emg = np.load('files/chenzui-3kg-1/emg-13.npy')
+            moment = pd.read_excel('files/chenzui-3kg-1/inverse_dynamics-13.xlsx')
+            length = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_Length-13.xlsx')
+            tenlen = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_TendonLength-13.xlsx')
+            momarm = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-13.xlsx')
+        elif idx == '14':
+            emg = np.load('files/chenzui-3kg-1/emg-14.npy')
+            moment = pd.read_excel('files/chenzui-3kg-1/inverse_dynamics-14.xlsx')
+            length = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_Length-14.xlsx')
+            tenlen = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_TendonLength-14.xlsx')
+            momarm = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-14.xlsx')
+        elif idx == '15':
+            emg = np.load('files/chenzui-3kg-1/emg-15.npy')
+            moment = pd.read_excel('files/chenzui-3kg-1/inverse_dynamics-15.xlsx')
+            length = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_Length-15.xlsx')
+            tenlen = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_TendonLength-15.xlsx')
+            momarm = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-15.xlsx')
+        elif idx == '17':
+            emg = np.load('files/chenzui-3kg-1/emg-17.npy')
+            moment = pd.read_excel('files/chenzui-3kg-1/inverse_dynamics-17.xlsx')
+            length = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_Length-17.xlsx')
+            tenlen = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_TendonLength-17.xlsx')
+            momarm = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-17.xlsx')
+        elif idx == '18':
+            emg = np.load('files/chenzui-3kg-1/emg-18.npy')
+            moment = pd.read_excel('files/chenzui-3kg-1/inverse_dynamics-18.xlsx')
+            length = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_Length-18.xlsx')
+            tenlen = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_TendonLength-18.xlsx')
+            momarm = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-18.xlsx')
+        elif idx == '19':
+            emg = np.load('files/chenzui-3kg-1/emg-19.npy')
+            moment = pd.read_excel('files/chenzui-3kg-1/inverse_dynamics-19.xlsx')
+            length = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_Length-19.xlsx')
+            tenlen = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_TendonLength-19.xlsx')
+            momarm = pd.read_excel('files/chenzui-3kg-1/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-19.xlsx')
+        else:
+            print('No such index!')
+    elif label == 'chenzui-left-5.5kg':
+        if idx == '2':
+            emg = np.load('files/chenzui-5.5kg-1/2.npy')
+            moment = pd.read_excel('files/chenzui-5.5kg-1/inverse_dynamics-2.xlsx')
+            length = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_Length-2.xlsx')
+            tenlen = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_TendonLength-2.xlsx')
+            momarm = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-2.xlsx')
+        elif idx == '3':
+            emg = np.load('files/chenzui-5.5kg-1/3.npy')
+            moment = pd.read_excel('files/chenzui-5.5kg-1/inverse_dynamics-3.xlsx')
+            length = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_Length-3.xlsx')
+            tenlen = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_TendonLength-3.xlsx')
+            momarm = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-3.xlsx')
+        elif idx == '4':
+            emg = np.load('files/chenzui-5.5kg-1/4.npy')
+            moment = pd.read_excel('files/chenzui-5.5kg-1/inverse_dynamics-4.xlsx')
+            length = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_Length-4.xlsx')
+            tenlen = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_TendonLength-4.xlsx')
+            momarm = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-4.xlsx')
+        elif idx == '5':
+            emg = np.load('files/chenzui-5.5kg-1/5.npy')
+            moment = pd.read_excel('files/chenzui-5.5kg-1/inverse_dynamics-5.xlsx')
+            length = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_Length-5.xlsx')
+            tenlen = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_TendonLength-5.xlsx')
+            momarm = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-5.xlsx')
+        elif idx == '6':
+            emg = np.load('files/chenzui-5.5kg-1/6.npy')
+            moment = pd.read_excel('files/chenzui-5.5kg-1/inverse_dynamics-6.xlsx')
+            length = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_Length-6.xlsx')
+            tenlen = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_TendonLength-6.xlsx')
+            momarm = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-6.xlsx')
+        elif idx == '7':
+            emg = np.load('files/chenzui-5.5kg-1/7.npy')
+            moment = pd.read_excel('files/chenzui-5.5kg-1/inverse_dynamics-7.xlsx')
+            length = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_Length-7.xlsx')
+            tenlen = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_TendonLength-7.xlsx')
+            momarm = pd.read_excel('files/chenzui-5.5kg-1/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-7.xlsx')
+        else:
+            print('No such index!')
+    elif label == 'zhuo-left-1kg':
+        if idx == '2':
+            emg = np.load('files/lizhuo-1kg/2.npy')
+            moment = pd.read_excel('files/lizhuo-1kg/inverse_dynamics-2.xlsx')
+            length = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_Length-2.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_TendonLength-2.xlsx')
+            momarm = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-2.xlsx')
+        elif idx == '3':
+            emg = np.load('files/lizhuo-1kg/3.npy')
+            moment = pd.read_excel('files/lizhuo-1kg/inverse_dynamics-3.xlsx')
+            length = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_Length-3.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_TendonLength-3.xlsx')
+            momarm = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-3.xlsx')
+        elif idx == '4':
+            emg = np.load('files/lizhuo-1kg/4.npy')
+            moment = pd.read_excel('files/lizhuo-1kg/inverse_dynamics-4.xlsx')
+            length = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_Length-4.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_TendonLength-4.xlsx')
+            momarm = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-4.xlsx')
+        elif idx == '6':
+            emg = np.load('files/lizhuo-1kg/6.npy')
+            moment = pd.read_excel('files/lizhuo-1kg/inverse_dynamics-6.xlsx')
+            length = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_Length-6.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_TendonLength-6.xlsx')
+            momarm = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-6.xlsx')
+        elif idx == '7':
+            emg = np.load('files/lizhuo-1kg/7.npy')
+            moment = pd.read_excel('files/lizhuo-1kg/inverse_dynamics-7.xlsx')
+            length = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_Length-7.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_TendonLength-7.xlsx')
+            momarm = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-7.xlsx')
+        elif idx == '9':
+            emg = np.load('files/lizhuo-1kg/9.npy')
+            moment = pd.read_excel('files/lizhuo-1kg/inverse_dynamics-9.xlsx')
+            length = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_Length-9.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_TendonLength-9.xlsx')
+            momarm = pd.read_excel('files/lizhuo-1kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_l-9.xlsx')
+        else:
+            print('No such index!')
+    elif label == 'zhuo-right-3kg':
+        if idx == '1':
+            emg = np.load('files/lizhuo-3kg/1.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-1.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-1.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-1.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-1.xlsx')
+        elif idx == '2':
+            emg = np.load('files/lizhuo-3kg/2.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-2.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-2.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-2.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-2.xlsx')
+        elif idx == '3':
+            emg = np.load('files/lizhuo-3kg/3.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-3.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-3.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-3.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-3.xlsx')
+        elif idx == '5':
+            emg = np.load('files/lizhuo-3kg/5.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-5.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-5.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-5.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-5.xlsx')
+        elif idx == '6':
+            emg = np.load('files/lizhuo-3kg/6.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-6.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-6.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-6.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-6.xlsx')
+        elif idx == '7':
+            emg = np.load('files/lizhuo-3kg/7.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-7.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-7.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-7.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-7.xlsx')
+        elif idx == '8':
+            emg = np.load('files/lizhuo-3kg/8.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-8.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-8.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-8.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-8.xlsx')
+        elif idx == '9':
+            emg = np.load('files/lizhuo-3kg/9.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-9.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-9.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-9.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-9.xlsx')
+        elif idx == '10':
+            emg = np.load('files/lizhuo-3kg/10.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-10.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-10.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-10.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-10.xlsx')
+        elif idx == '11':
+            emg = np.load('files/lizhuo-3kg/10.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-11.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-11.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-11.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-11.xlsx')
+        elif idx == '12-1' or idx == '12-2' or idx == '12-3':
+            emg = np.load('files/lizhuo-3kg/12.npy')
+            moment = pd.read_excel('files/lizhuo-3kg/inverse_dynamics-12.xlsx')
+            length = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_Length-12.xlsx')
+            tenlen = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_TendonLength-12.xlsx')
+            momarm = pd.read_excel('files/lizhuo-3kg/Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-12.xlsx')
+    elif label == 'chenzui-left-all-2.5kg':
+        if idx == '5':
+            emg = np.load('files/chenzui-all/2.5-5.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-5.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-5.xlsx')
+        elif idx == '6':
+            emg = np.load('files/chenzui-all/2.5-6.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-6.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-6.xlsx')
+        elif idx == '7':
+            emg = np.load('files/chenzui-all/2.5-7.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-7.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-7.xlsx')
+        elif idx == '8':
+            emg = np.load('files/chenzui-all/2.5-8.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-8.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-8.xlsx')
+        elif idx == '9':
+            emg = np.load('files/chenzui-all/2.5-9.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-9.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-9.xlsx')
+        else:
+            print('No such index!')
+    elif label == 'chenzui-left-all-3kg':
+        if idx == '10':
+            emg = np.load('files/chenzui-all/3-10.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-10.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-10.xlsx')
+        elif idx == '11':
+            emg = np.load('files/chenzui-all/3-11.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-11.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-11.xlsx')
+        elif idx == '12':
+            emg = np.load('files/chenzui-all/3-12.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-12.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-12.xlsx')
+        elif idx == '13':
+            emg = np.load('files/chenzui-all/3-13.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-13.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-13.xlsx')
+        elif idx == '14':
+            emg = np.load('files/chenzui-all/3-14.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-14.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-14.xlsx')
+        else:
+            print('No such index!')
+    elif label == 'chenzui-left-all-4kg':
+        if idx == '15':
+            emg = np.load('files/chenzui-all/4-15.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-15.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-15.xlsx')
+        elif idx == '16':
+            emg = np.load('files/chenzui-all/4-16.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-16.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-16.xlsx')
+        elif idx == '17':
+            emg = np.load('files/chenzui-all/4-17.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-17.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-17.xlsx')
+        else:
+            print('No such index!')
+    elif label == 'chenzui-left-all-6.5kg':
+        if idx == '18':
+            emg = np.load('files/chenzui-all/6.5-18.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-18.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-18.xlsx')
+        elif idx == '19':
+            emg = np.load('files/chenzui-all/6.5-19.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-19.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-19.xlsx')
+        elif idx == '20':
+            emg = np.load('files/chenzui-all/6.5-20.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-20.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-20.xlsx')
+        elif idx == '21':
+            emg = np.load('files/chenzui-all/6.5-21.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-21.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-21.xlsx')
+        elif idx == '22':
+            emg = np.load('files/chenzui-all/6.5-22.npy')
+            moment = pd.read_excel('files/chenzui-all/inverse_dynamics-22.xlsx')
+            momarm = pd.read_excel('files/chenzui-all/modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-22.xlsx')
+        else:
+            print('No such index!')
     else:
         print('No corresponding label!')
+    # momarm = tenlen
 
-    if label == '11' or label == '13' or label == '14' or label == '15' or label == '17' or label == '18':
+    if label == 'chenzui-left-3kg':
         emg_mean = np.load('emg/chenzui_mean_3kg.npy')
         emg_std = np.load('emg/chenzui_std_3kg.npy')
-    elif label == '5.5kg-2' or label == '5.5kg-3' or label == '5.5kg-4' or label == '5.5kg-5' or label == '5.5kg-6' or label == '5.5kg-7':
+        emg_trend_u = np.load('emg/chenzui_trend_u_3kg.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_3kg.npy')
+    elif label == 'chenzui-left-5.5kg':
         emg_mean = np.load('emg/chenzui_mean_5.5kg.npy')
         emg_std = np.load('emg/chenzui_std_5.5kg.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_5.5kg.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_5.5kg.npy')
+    elif label == 'zhuo-left-1kg':
+        emg_mean = np.load('emg/lizhuo_mean_1kg.npy')
+        emg_std = np.load('emg/lizhuo_std_1kg.npy')
+        emg_trend_u = np.load('emg/lizhuo_trend_u_1kg.npy')
+        emg_trend_d = np.load('emg/lizhuo_trend_d_1kg.npy')
+    elif label == 'zhuo-right-3kg':
+        emg_mean = np.load('emg/lizhuo_mean_3kg.npy')
+        emg_std = np.load('emg/lizhuo_std_3kg.npy')
+        emg_trend_u = np.load('emg/lizhuo_trend_u_3kg.npy')
+        emg_trend_d = np.load('emg/lizhuo_trend_d_3kg.npy')
+    elif label == 'chenzui-left-all-2.5kg':
+        emg_mean = np.load('emg/chenzui_mean_2.5kg.npy')
+        emg_std = np.load('emg/chenzui_std_2.5kg.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_2.5kg.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_2.5kg.npy')
+    elif label == 'chenzui-left-all-3kg':
+        emg_mean = np.load('emg/chenzui_mean_3kg.npy')
+        emg_std = np.load('emg/chenzui_std_3kg.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_3kg.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_3kg.npy')
+    elif label == 'chenzui-left-all-4kg':
+        emg_mean = np.load('emg/chenzui_mean_4kg.npy')
+        emg_std = np.load('emg/chenzui_std_4kg.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_4kg.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_4kg.npy')
+    elif label == 'chenzui-left-all-6.5kg':
+        emg_mean = np.load('emg/chenzui_mean_6.5kg.npy')
+        emg_std = np.load('emg/chenzui_std_6.5kg.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_6.5kg.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_6.5kg.npy')
+    # elif label == 'chenzui-left-all-2.5kg' or label == 'chenzui-left-all-3kg' or label == 'chenzui-left-all-4kg' or label == 'chenzui-left-all-6.5kg':
+    #     emg_mean = np.load('emg/chenzui_mean_all.npy')
+    #     emg_std = np.load('emg/chenzui_std_all.npy')
+    #     emg_trend_u = np.load('emg/chenzui_trend_u_all.npy')
+    #     emg_trend_d = np.load('emg/chenzui_trend_d_all.npy')
 
     time_torque = moment['time']
     time_momarm = momarm['time']
 
-    if label == '11':
-        timestep_emg = [50.398, 57.531, 57.931, 70.13]
-    elif label == '13':
-        timestep_emg = [214.69, 223.09, 223.09, 236.139]
-    elif label == '14':
-        timestep_emg = [295.103, 303.336, 303.686, 316.469]
-    elif label == '15':
-        timestep_emg = [395.348, 402.648, 403.398, 415.981]
-    elif label == '17':
-        timestep_emg = [568.907, 577.106, 577.106, 590.106]
-    elif label == '18':
-        timestep_emg = [644.553, 653.669, 653.669, 668.352]
-    elif label == '5.5kg-2':
-        timestep_emg = [17.582, 28.415, 28.415, 43.481]
-    elif label == '5.5kg-3':
-        timestep_emg = [17.033, 27.482, 27.482, 42.531]
-    elif label == '5.5kg-4':
-        timestep_emg = [19.216, 29.799, 30.132, 44.398]
-    elif label == '5.5kg-5':
-        timestep_emg = [19.382, 30.648, 30.648, 46.048]
-    elif label == '5.5kg-6':
-        timestep_emg = [18.149, 28.249, 28.332, 42.515]
-    elif label == '5.5kg-7':
-        timestep_emg = [20.15, 30.299, 30.932, 44.298]
+    if label == 'chenzui-left-3kg':
+        if idx == '11':
+            timestep_emg = [50.398, 57.531, 57.931, 70.13]
+        elif idx == '13':
+            timestep_emg = [214.69, 223.09, 223.09, 236.139]
+        elif idx == '14':
+            timestep_emg = [295.103, 303.336, 303.686, 316.469]
+        elif idx == '15':
+            timestep_emg = [395.348, 402.648, 403.398, 415.981]
+        elif idx == '17':
+            timestep_emg = [568.907, 577.106, 577.106, 590.106]
+        elif idx == '18':
+            timestep_emg = [644.553, 653.669, 653.669, 668.352]
+    elif label == 'chenzui-left-5.5kg':
+        if idx == '2':
+            timestep_emg = [17.582, 28.415, 28.415, 43.481]
+        elif idx == '3':
+            timestep_emg = [17.033, 27.482, 27.482, 42.531]
+        elif idx == '4':
+            timestep_emg = [19.216, 29.799, 30.132, 44.398]
+        elif idx == '5':
+            timestep_emg = [19.382, 30.648, 30.648, 46.048]
+        elif idx == '6':
+            timestep_emg = [18.149, 28.249, 28.332, 42.515]
+        elif idx == '7':
+            timestep_emg = [20.15, 30.299, 30.932, 44.298]
+    elif label == 'zhuo-left-1kg':
+        if idx == '2':
+            timestep_emg = [20.016, 27.599, 27.599, 37.465]
+        elif idx == '3':
+            timestep_emg = [14.365, 25.798, 25.798, 36.248]
+        elif idx == '4':
+            timestep_emg = [12.766, 27.032, 27.032, 39.865]
+        elif idx == '6':
+            timestep_emg = [13.483, 25.832, 25.866, 55.331]
+        elif idx == '7':
+            timestep_emg = [12.566, 29.299, 29.299, 53.014]
+        elif idx == '9':
+            timestep_emg = [12.199, 29.698, 29.698, 51.514]
+    elif label == 'zhuo-right-3kg':
+        if idx == '1':
+            timestep_emg = [20.383, 32.832, 32.832, 46.348]
+        elif idx == '2':
+            timestep_emg = [19.250, 32.449, 32.449, 47.765]
+        elif idx == '3':
+            timestep_emg = [14.866, 29.916, 29.916, 48.015]
+        elif idx == '5':
+            timestep_emg = [12.099, 24.215, 25.932, 42.098]
+        elif idx == '6':
+            timestep_emg = [14.133, 30.015, 30.015, 50.098]
+        elif idx == '7':
+            timestep_emg = [15.933, 24.233, 24.233, 37.882]
+        elif idx == '8':
+            timestep_emg = [15.332, 25.449, 25.449, 39.265]
+        elif idx == '9':
+            timestep_emg = [13.7, 27.116, 27.116, 37.649]
+        elif idx == '10':
+            timestep_emg = [12.8, 20.0, 20.0, 28.799]  # 7.20s, 8.80s
+        elif idx == '11':
+            timestep_emg = [16.099, 25.332, 25.332, 37.848]
+        elif idx == '12-1':
+            timestep_emg = [19.032, 21.649, 21.649, 24.465]  # 2.62s, 2.82s
+        elif idx == '12-2':
+            timestep_emg = [24.465, 26.865, 26.865, 30.165]  # 2.40s, 3.30s
+        elif idx == '12-3':
+            timestep_emg = [30.665, 33.198, 33.198, 36.498]  # 2.53s, 3.30s
+    elif label == 'chenzui-left-all-2.5kg':
+        if idx == '5':
+            timestep_emg = [16.416, 27.065, 27.065, 41.681]
+        elif idx == '6':
+            timestep_emg = [13.750, 24.782, 24.782, 42.731]
+        elif idx == '7':
+            timestep_emg = [13.649, 25.982, 25.982, 41.598]
+        elif idx == '8':
+            timestep_emg = [15.832, 28.482, 28.482, 44.864]
+        elif idx == '9':
+            timestep_emg = [15.549, 26.365, 26.599, 40.031]
+    elif label == 'chenzui-left-all-3kg':
+        if idx == '10':
+            timestep_emg = [15.599, 26.249, 26.532, 39.348]
+        elif idx == '11':
+            timestep_emg = [15.216, 25.582, 25.582, 40.781]
+        elif idx == '12':
+            timestep_emg = [16.066, 28.299, 28.299, 40.882]
+        elif idx == '13':
+            timestep_emg = [12.049, 22.699, 22.699, 34.965]
+        elif idx == '14':
+            timestep_emg = [17.849, 29.365, 29.365, 43.381]
+    elif label == 'chenzui-left-all-4kg':
+        if idx == '15':
+            timestep_emg = [14.966, 24.216, 24.216, 37.399]
+        elif idx == '16':
+            timestep_emg = [13.133, 23.899, 23.899, 37.565]
+        elif idx == '17':
+            timestep_emg = [11.433, 22.516, 22.516, 35.682]
+    elif label == 'chenzui-left-all-6.5kg':
+        if idx == '18':
+            timestep_emg = [11.233, 23.465, 23.465, 37.948]
+        elif idx == '19':
+            timestep_emg = [11.833, 25.132, 25.132, 36.548]
+        elif idx == '20':
+            timestep_emg = [14.633, 27.399, 27.399, 40.465]
+        elif idx == '21':
+            timestep_emg = [11.9, 24.599, 24.599, 37.465]
+        elif idx == '22':
+            timestep_emg = [19.466, 30.415, 31.749, 45.781]
 
     t_tor = []
     t_arm = []
@@ -593,8 +833,12 @@ def read_chenzui_realted_files(label='11'):
     fa = [[] for _ in range(len(muscle_idx))]
     fr = []
 
-    torque = moment['elbow_flex_l_moment']
-    for i in range(int(len(timestep_emg)/2)):
+    if label == 'zhuo-right-3kg':
+        torque = moment['elbow_flex_r_moment']
+    else:
+        torque = moment['elbow_flex_l_moment']
+
+    for i in range(int(len(timestep_emg) / 2)):
         tts = find_nearest_idx(time_torque, timestep_emg[2 * i])
         tte = find_nearest_idx(time_torque, timestep_emg[2 * i + 1])
         t_tor.append(resample_by_len(list(time_torque[tts:tte]), target_len))
@@ -605,17 +849,19 @@ def read_chenzui_realted_files(label='11'):
         t_arm.append(resample_by_len(list(time_momarm[tms:tme]), target_len))
         for j in range(len(muscle_idx)):
             arm[j].append(resample_by_len(list(momarm[muscle_idx[j]][tms:tme]), target_len))
-            ml[j].append(resample_by_len(list(length[muscle_idx[j]][tms:tme]), target_len))
-            tl[j].append(resample_by_len(list(tenlen[muscle_idx[j]][tms:tme]), target_len))
-            for k in range(tms, tme):
-                fr.append(calc_fal(length[muscle_idx[j]][k], tenlen[muscle_idx[j]][k], muscle_idx[j]))
-            fa[j].append(resample_by_len(fr, target_len))
+            # ml[j].append(resample_by_len(list(length[muscle_idx[j]][tms:tme]), target_len))
+            # tl[j].append(resample_by_len(list(tenlen[muscle_idx[j]][tms:tme]), target_len))
+            # for k in range(tms, tme):
+            #     fr.append(calc_fal(length[muscle_idx[j]][k], tenlen[muscle_idx[j]][k], muscle_idx[j]))
+            # fa[j].append(resample_by_len(fr, target_len))
             fr = []
 
     t_tor_out = []  # 3 actions
     t_arm_out = []
     emg_mean_out = []
     emg_std_out = []
+    emg_trend_u_out = []
+    emg_trend_d_out = []
     tor_out = []
     arm_out = [[] for _ in range(len(muscle_idx))]
     ml_out = [[] for _ in range(len(muscle_idx))]
@@ -623,21 +869,23 @@ def read_chenzui_realted_files(label='11'):
     fa_out = [[] for _ in range(len(muscle_idx))]
     for i in range(len(muscle_idx)):
         if only_lift is False:
+            emg_trend_u_out.append(resample_by_len(emg_trend_u[i, :], target_len * 2))
+            emg_trend_d_out.append(resample_by_len(emg_trend_d[i, :], target_len * 2))
             emg_mean_out.append(resample_by_len(emg_mean[i, :], target_len * 2))
             emg_std_out.append(resample_by_len(emg_std[i, :], target_len * 2))
             arm_out[i].append(np.concatenate([arm[i][0], arm[i][1]]))
-            ml_out[i].append(np.concatenate([ml[i][0], ml[i][1]]))
-            tl_out[i].append(np.concatenate([tl[i][0], tl[i][1]]))
-            fa_out[i].append(np.concatenate([fa[i][0], fa[i][1]]))
+            # ml_out[i].append(np.concatenate([ml[i][0], ml[i][1]]))
+            # tl_out[i].append(np.concatenate([tl[i][0], tl[i][1]]))
+            # fa_out[i].append(np.concatenate([fa[i][0], fa[i][1]]))
         else:
             emg_mean = emg_mean[:, :emg_lift_len]
             emg_std = emg_std[:, :emg_lift_len]
             emg_mean_out.append(resample_by_len(emg_mean[i, :], target_len))
             emg_std_out.append(resample_by_len(emg_std[i, :], target_len))
             arm_out[i].append(arm[i][0])
-            ml_out[i].append(ml[i][0])
-            tl_out[i].append(tl[i][0])
-            fa_out[i].append(fa[i][0])
+            # ml_out[i].append(ml[i][0])
+            # tl_out[i].append(tl[i][0])
+            # fa_out[i].append(fa[i][0])
 
     if only_lift is False:
         t_tor_out.append(np.concatenate([t_tor[0], t_tor[1]]))
@@ -648,40 +896,126 @@ def read_chenzui_realted_files(label='11'):
         t_arm_out.append(t_arm[0])
         tor_out.append(tor[0])
 
-    if include_TRI is False:
-        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC')
-        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA')
-        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD')
-    else:
-        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC')
-        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA')
-        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD')
-        [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI')
+    if label == 'chenzui-left-3kg' or label == 'chenzui-left-5.5kg' or label == 'chenzui-left-all-2.5kg' or label == 'chenzui-left-all-3kg' or label == 'chenzui-left-all-4kg' or label == 'chenzui-left-all-6.5kg':
+        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', 'chenzui')
+        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', 'chenzui')
+        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', 'chenzui')
+        if include_TRI is True:
+            [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', 'chenzui')
+    elif label == 'zhuo-left-1kg' or label == 'zhuo-right-3kg':
+        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', 'zhuo')
+        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', 'zhuo')
+        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', 'zhuo')
+        if include_TRI is True:
+            [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', 'zhuo')
+
     # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
-    if label == '11':
-        t1 = t1 - 4.131 + 45.182  # 11
-    elif label == '13':
-        t1 = t1 - 4.763 + 209.74  # 13
-    elif label == '14':
-        t1 = t1 - 7.0005 + 289.653  # 14
-    elif label == '15':
-        t1 = t1 - 14.9555 + 391.032  # 15
-    elif label == '17':
-        t1 = t1 - 4.426 + 563.707  # 17
-    elif label == '18':
-        t1 = t1 - 4.03 + 638.553  # 18
-    elif label == '5.5kg-2':
-        t1 = t1 - 3.638 + 12.099
-    elif label == '5.5kg-3':
-        t1 = t1 - 3.0785 + 11.783
-    elif label == '5.5kg-4':
-        t1 = t1 - 4.427 + 12.933
-    elif label == '5.5kg-5':
-        t1 = t1 - 5.5625 + 14.066
-    elif label == '5.5kg-6':
-        t1 = t1 - 5.274 + 11.65
-    elif label == '5.5kg-7':
-        t1 = t1 - 3.169 + 13.967
+    if label == 'chenzui-left-3kg':
+        if idx == '11':
+            t1 = t1 - 4.131 + 45.182  # 11
+        elif idx == '13':
+            t1 = t1 - 4.763 + 209.74  # 13
+        elif idx == '14':
+            t1 = t1 - 7.0005 + 289.653  # 14
+        elif idx == '15':
+            t1 = t1 - 14.9555 + 391.032  # 15
+        elif idx == '17':
+            t1 = t1 - 4.426 + 563.707  # 17
+        elif idx == '18':
+            t1 = t1 - 4.03 + 638.553  # 18
+    elif label == 'chenzui-left-5.5kg':
+        if idx == '2':
+            t1 = t1 - 3.638 + 12.099
+        elif idx == '3':
+            t1 = t1 - 3.0785 + 11.783
+        elif idx == '4':
+            t1 = t1 - 4.427 + 12.933
+        elif idx == '5':
+            t1 = t1 - 5.5625 + 14.066
+        elif idx == '6':
+            t1 = t1 - 5.274 + 11.65
+        elif idx == '7':
+            t1 = t1 - 3.169 + 13.967
+    elif label == 'zhuo-left-1kg':
+        if idx == '2':
+            t1 = t1 - 11.3095 + 16.0
+        elif idx == '3':
+            t1 = t1 - 4.0 + 12.149
+        elif idx == '4':
+            t1 = t1 - 4.3385 + 11.299
+        elif idx == '6':
+            t1 = t1 - 4.9365 + 11.283
+        elif idx == '7':
+            t1 = t1 - 4.8945 + 11.033
+        elif idx == '9':
+            t1 = t1 - 4.2645 + 9.899
+    elif label == 'zhuo-right-3kg':
+        if idx == '1':
+            t1 = t1 - 4.2525 + 13.067
+        elif idx == '2':
+            t1 = t1 - 8.14 + 14.1
+        elif idx == '3':
+            t1 = t1 - 3.6615 + 9.866
+        elif idx == '5':
+            t1 = t1 - 3.642 + 7.749
+        elif idx == '6':
+            t1 = t1 - 4.103 + 9.716
+        elif idx == '7':
+            t1 = t1 - 7.3255 + 13.183
+        elif idx == '8':
+            t1 = t1 - 3.873 + 9.866
+        elif idx == '9':
+            t1 = t1 - 4.2335 + 9.75
+        elif idx == '10':
+            t1 = t1 - 4.1045 + 9.367
+        elif idx == '11':
+            t1 = t1 - 5.6695 + 12.766
+        elif idx == '12-1':
+            t1 = t1 - 7.29 + 14.749
+        elif idx == '12-2':
+            t1 = t1 - 7.29 + 14.749
+        elif idx == '12-3':
+            t1 = t1 - 7.29 + 14.749
+    elif label == 'chenzui-left-all-2.5kg':
+        if idx == '5':
+            t1 = t1 - 3.464 + 9.733
+        elif idx == '6':
+            t1 = t1 - 3.7925 + 7.65
+        elif idx == '7':
+            t1 = t1 - 3.2645 + 8.583
+        elif idx == '8':
+            t1 = t1 - 3.178 + 11.249
+        elif idx == '9':
+            t1 = t1 - 4.6665 + 9.466
+    elif label == 'chenzui-left-all-3kg':
+        if idx == '10':
+            t1 = t1 - 7.177 + 10.1
+        elif idx == '11':
+            t1 = t1 - 3.5745 + 8.866
+        elif idx == '12':
+            t1 = t1 - 5.055 + 9.283
+        elif idx == '13':
+            t1 = t1 - 4.588 + 6.983
+        elif idx == '14':
+            t1 = t1 - 9.098 + 12.816
+    elif label == 'chenzui-left-all-4kg':
+        if idx == '15':
+            t1 = t1 - 3.3555 + 9.7
+        elif idx == '16':
+            t1 = t1 - 4.450 + 8.783
+        elif idx == '17':
+            t1 = t1 - 3.735 + 7.233
+    elif label == 'chenzui-left-all-6.5kg':
+        if idx == '10':
+            t1 = t1 - 4.869 + 6.183
+        elif idx == '11':
+            t1 = t1 - 4.0085 + 6.033
+        elif idx == '12':
+            t1 = t1 - 6.505 + 8.0
+        elif idx == '13':
+            t1 = t1 - 3.8335 + 6.65
+        elif idx == '14':
+            t1 = t1 - 13.803 + 15.4
 
     # plt.figure(figsize=(6, 7.7))
     # plt.subplot(311)
@@ -799,38 +1133,33 @@ def read_chenzui_realted_files(label='11'):
     # # momarm4 = momarm['bic_l_l']
     # # momarm5 = momarm['brachiorad_2_l']
     # # momarm6 = momarm['brachiorad_3_l']
-    # if torque_init_0 is True:
-    if label == '11' or label == '13' or label == '14' or label == '15' or label == '17' or label == '18':
-        tor_out = tor_out[0] - tor_out[0][0]
+    # # if torque_init_0 is True:
+    # if label == '11' or label == '13' or label == '14' or label == '15' or label == '17' or label == '18':
+    #     tor_out = tor_out[0] - tor_out[0][0]
+    emg_trend_u_out = np.asarray(emg_trend_u_out).squeeze()
+    emg_trend_d_out = np.asarray(emg_trend_d_out).squeeze()
     emg_mean_out = np.asarray(emg_mean_out).squeeze()
     emg_std_out = np.asarray(emg_std_out).squeeze()
     arm_out = np.asarray(arm_out).squeeze()
-    fa_out = np.asarray(fa_out).squeeze()
+    # fa_out = np.asarray(fa_out).squeeze()
     tor_out = np.asarray(tor_out).squeeze()
     t_tor_out = np.asarray(t_tor_out).squeeze()
     emg_mean = np.asarray(emg_mean).squeeze()
     emg = np.asarray(emg).squeeze()
     time_emg = np.asarray(time_emg).squeeze()
-    return emg_mean_out, emg_std_out, arm_out, fa_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg
+    # return emg_mean_out, emg_std_out, arm_out, fa_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg, emg_trend_u_out, emg_trend_d_out
+    return emg_mean_out, emg_std_out, arm_out, tor_out, t_tor_out, emg_mean, emg_std, emg, time_emg, emg_trend_u_out, emg_trend_d_out
 
 
-def emg_file_progressing(emg, fs=1000):
-    # [emg_BIC, t1] = emg_rectification(emg['BIC'], fs, 'BIC')
-    # [emg_BRA, t2] = emg_rectification(emg['BRA'], fs, 'BRA')
-    # [emg_BRD, t3] = emg_rectification(emg['BRD'], fs, 'BRD')
-    # [emg_TRIlong, t4] = emg_rectification(emg['TRIlong'], fs, 'TRIlong')
-    # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
+def emg_file_progressing(emg, fs=1000, people=None):
+    [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', people)
+    [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', people)
+    [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', people)
     if include_TRI is True:
-        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC')
-        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA')
-        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD')
-        [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI')
+        [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', people)
         emg_list = np.asarray([emg_BIC, emg_BRA, emg_BRD, emg_TRI])
         t_list = np.asarray([t1, t2, t3, t4])
     else:
-        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC')
-        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA')
-        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD')
         emg_list = np.asarray([emg_BIC, emg_BRA, emg_BRD])
         t_list = np.asarray([t1, t2, t3])
     return [emg_list, t_list]
@@ -1031,110 +1360,506 @@ def calculate_emg_distribution():
     plt.show()
 
 
-def calculate_chenzui_emg_distribution(label='3kg'):
+# def calculate_chenzui_emg_distribution(label='3kg'):
+#     unified_len = 1000
+#     fs = 2000
+#     data_set_number = 7
+#     if label == '3kg':
+#         cz_11 = np.load('files/chenzui-3kg/emg-11.npy')
+#         cz_13 = np.load('files/chenzui-3kg/emg-13.npy')
+#         cz_14 = np.load('files/chenzui-3kg/emg-14.npy')
+#         cz_15 = np.load('files/chenzui-3kg/emg-15.npy')
+#         cz_16 = np.load('files/chenzui-3kg/emg-16.npy')
+#         cz_17 = np.load('files/chenzui-3kg/emg-17.npy')
+#         cz_18 = np.load('files/chenzui-3kg/emg-18.npy')
+#     elif label == '5.5kg':
+#         # cz_11 = np.load('files/chenzui-5.5kg/2.npy')
+#         cz_11 = np.load('files/chenzui-5.5kg/7.npy')
+#         cz_13 = np.load('files/chenzui-5.5kg/3.npy')
+#         cz_14 = np.load('files/chenzui-5.5kg/4.npy')
+#         cz_15 = np.load('files/chenzui-5.5kg/5.npy')
+#         cz_16 = np.load('files/chenzui-5.5kg/6.npy')
+#         cz_17 = np.load('files/chenzui-5.5kg/8.npy')
+#         cz_18 = np.load('files/chenzui-5.5kg/9.npy')
+#
+#     [cz_11, t_cz_11] = emg_file_progressing(cz_11, fs, 'chenzui')
+#     [cz_13, t_cz_13] = emg_file_progressing(cz_13, fs, 'chenzui')
+#     [cz_14, t_cz_14] = emg_file_progressing(cz_14, fs, 'chenzui')
+#     [cz_15, t_cz_15] = emg_file_progressing(cz_15, fs, 'chenzui')
+#     [cz_16, t_cz_16] = emg_file_progressing(cz_16, fs, 'chenzui')
+#     [cz_17, t_cz_17] = emg_file_progressing(cz_17, fs, 'chenzui')
+#     [cz_18, t_cz_18] = emg_file_progressing(cz_18, fs, 'chenzui')
+#     if label == '3kg':
+#         t_cz_11 = t_cz_11 - 4.131 + 45.182  # 11
+#         t_cz_13 = t_cz_13 - 4.763 + 209.74  # 13
+#         t_cz_14 = t_cz_14 - 7.0005 + 289.653  # 14
+#         t_cz_15 = t_cz_15 - 14.9555 + 391.032  # 15
+#         t_cz_16 = t_cz_16 - 4.7075 + 482.544  # 16
+#         t_cz_17 = t_cz_17 - 4.426 + 563.707  # 17
+#         t_cz_18 = t_cz_18 - 4.03 + 638.553  # 18
+#         timestep_emg_11 = [50.398, 57.531, 57.931, 70.13]
+#         timestep_emg_13 = [214.69, 223.09, 223.09, 236.139]
+#         timestep_emg_14 = [295.103, 303.336, 303.686, 316.469]
+#         timestep_emg_15 = [395.348, 402.648, 403.398, 415.981]
+#         timestep_emg_16 = [487.627, 495.31, 495.493, 509.676]
+#         timestep_emg_17 = [568.907, 577.106, 577.106, 590.106]
+#         timestep_emg_18 = [644.553, 653.669, 653.669, 668.352]
+#     elif label == '5.5kg':
+#         # t_cz_11 = t_cz_11 - 3.638 + 12.099
+#         t_cz_11 = t_cz_11 - 3.169 + 13.967
+#         t_cz_13 = t_cz_13 - 3.0785 + 11.783
+#         t_cz_14 = t_cz_14 - 4.427 + 12.933
+#         t_cz_15 = t_cz_15 - 5.5625 + 14.066
+#         t_cz_16 = t_cz_16 - 5.274 + 11.65
+#         # t_cz_17 = t_cz_17 - 3.169 + 13.967
+#         t_cz_17 = t_cz_17 - 5.7455 + 12.833
+#         t_cz_18 = t_cz_18 - 7.0975 + 15.699
+#         # timestep_emg_11 = [17.582, 28.415, 28.415, 43.481]
+#         timestep_emg_11 = [20.15, 30.299, 30.932, 44.298]
+#         timestep_emg_13 = [17.033, 27.482, 27.482, 42.531]
+#         timestep_emg_14 = [19.216, 29.799, 30.132, 44.398]
+#         timestep_emg_15 = [19.382, 30.648, 30.648, 46.048]
+#         timestep_emg_16 = [18.149, 28.249, 28.332, 42.515]
+#         # timestep_emg_17 = [20.15, 30.299, 30.932, 44.298]
+#         timestep_emg_17 = [19.432, 29.532, 29.782, 43.015]
+#         timestep_emg_18 = [21.716, 32.449, 33.299, 49.748]
+#
+#     if include_TRI is True:
+#         yt = [([], [], [], []) for _ in range(data_set_number)]  # number of muscle
+#     else:
+#         yt = [([], [], []) for _ in range(data_set_number)]  # number of muscle
+#     for j in range(len(muscle_idx)):
+#         for i in range(int(len(timestep_emg_11) / 2)):
+#             yt[0][j].append(resample_by_len(cz_11[j, find_nearest_idx(t_cz_11, timestep_emg_11[2 * i]):
+#                                                      find_nearest_idx(t_cz_11, timestep_emg_11[2 * i + 1])],
+#                                             unified_len))
+#             yt[1][j].append(resample_by_len(cz_13[j, find_nearest_idx(t_cz_13, timestep_emg_13[2 * i]):
+#                                                      find_nearest_idx(t_cz_13, timestep_emg_13[2 * i + 1])],
+#                                             unified_len))
+#             yt[2][j].append(resample_by_len(cz_14[j, find_nearest_idx(t_cz_14, timestep_emg_14[2 * i]):
+#                                                      find_nearest_idx(t_cz_14, timestep_emg_14[2 * i + 1])],
+#                                             unified_len))
+#             yt[3][j].append(resample_by_len(cz_15[j, find_nearest_idx(t_cz_15, timestep_emg_15[2 * i]):
+#                                                      find_nearest_idx(t_cz_15, timestep_emg_15[2 * i + 1])],
+#                                             unified_len))
+#             yt[4][j].append(resample_by_len(cz_16[j, find_nearest_idx(t_cz_16, timestep_emg_16[2 * i]):
+#                                                      find_nearest_idx(t_cz_16, timestep_emg_16[2 * i + 1])],
+#                                             unified_len))
+#             yt[5][j].append(resample_by_len(cz_17[j, find_nearest_idx(t_cz_17, timestep_emg_17[2 * i]):
+#                                                      find_nearest_idx(t_cz_17, timestep_emg_17[2 * i + 1])],
+#                                             unified_len))
+#             yt[6][j].append(resample_by_len(cz_18[j, find_nearest_idx(t_cz_18, timestep_emg_18[2 * i]):
+#                                                      find_nearest_idx(t_cz_18, timestep_emg_18[2 * i + 1])],
+#                                             unified_len))
+#
+#     yt = np.asarray(yt)
+#     data = [([]) for _ in range(len(muscle_idx))]
+#     for k in range(len(muscle_idx)):
+#         for i in range(data_set_number):
+#             data[k].append(np.concatenate([yt[i, k, 0, :], yt[i, k, 1, :]]))
+#     data = np.asarray(data)
+#
+#     NUMPASSES = 3
+#     LOWPASSRATE = 3  # 低通滤波4—10Hz得到包络线
+#     Fs = 200
+#     Wn = LOWPASSRATE / (Fs / 2)
+#     [b, a] = scipy.signal.butter(NUMPASSES, Wn, 'low')
+#     data = scipy.signal.filtfilt(b, a, data, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))  # 低通滤波
+#
+#     data_mean = np.ones([yt.shape[0], data.shape[2]])
+#     data_std = np.ones([data.shape[0], data.shape[2]])
+#     data_trend_u = np.ones([data.shape[0], data.shape[2] - 1])
+#     data_trend_d = np.ones([data.shape[0], data.shape[2] - 1])
+#     for i in range(len(muscle_idx)):  # three muscles
+#         data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
+#         data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
+#         # data_trend_u[i] = np.asarray([np.max(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
+#         # data_trend_d[i] = np.asarray([np.min(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
+#         data_trend_u[i] = np.asarray(
+#             [(np.max(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
+#         data_trend_d[i] = np.asarray(
+#             [(np.min(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
+#         # data_trend_u[i] = np.asarray([np.max(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
+#         # data_trend_d[i] = np.asarray([np.min(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
+#
+#     # data_mean = np.ones([data.shape[0], data.shape[2]])
+#     # data_std = np.ones([data.shape[0], data.shape[2]])
+#     # for i in range(len(muscle_idx)):  # three muscles
+#     #     data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
+#     #     data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
+#
+#     plt.figure(figsize=(6, 6.7))
+#     color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+#     plt.subplot(311)
+#     for i in range(data.shape[1]):
+#         plt.plot(data[0, i, :], color=color[i % len(color)])
+#     plt.ylabel('bic', weight='bold')
+#     ax = plt.gca()
+#     ax.axes.xaxis.set_visible(False)
+#     plt.subplot(312)
+#     for i in range(data.shape[1]):
+#         plt.plot(data[1, i, :], color=color[i % len(color)])
+#     plt.ylabel('brachialis', weight='bold')
+#     ax = plt.gca()
+#     ax.axes.xaxis.set_visible(False)
+#     plt.subplot(313)
+#     for i in range(data.shape[1]):
+#         plt.plot(data[2, i, :], color=color[i % len(color)])
+#     # for i in range(data.shape[1]):
+#     #     if i < 3:
+#     #         plt.plot(data[2, i, :], color=color[i % 3], label=label[i])
+#     #     else:
+#     #         plt.plot(data[2, i, :], color=color[i % 3])
+#     # plt.legend()
+#     plt.ylabel('brachiorad', weight='bold')
+#     plt.xlabel('timestep', weight='bold')
+#
+#     if include_TRI is False:
+#         plt.figure(figsize=(6, 6.7))
+#         plt.subplot(311)
+#         plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
+#         plt.ylabel('bic', weight='bold')
+#         ax = plt.gca()
+#         ax.axes.xaxis.set_visible(False)
+#         plt.subplot(312)
+#         plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1])
+#         plt.ylabel('brachialis', weight='bold')
+#         ax = plt.gca()
+#         ax.axes.xaxis.set_visible(False)
+#         plt.subplot(313)
+#         plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2])
+#         plt.ylabel('brachiorad', weight='bold')
+#         plt.xlabel('timestep', weight='bold')
+#     else:
+#         plt.figure(figsize=(6, 6.7))
+#         plt.subplot(411)
+#         plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
+#         plt.ylabel('bic', weight='bold')
+#         ax = plt.gca()
+#         ax.axes.xaxis.set_visible(False)
+#         plt.subplot(412)
+#         plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1])
+#         plt.ylabel('brachialis', weight='bold')
+#         ax = plt.gca()
+#         ax.axes.xaxis.set_visible(False)
+#         plt.subplot(413)
+#         plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2])
+#         plt.ylabel('brachiorad', weight='bold')
+#         ax = plt.gca()
+#         ax.axes.xaxis.set_visible(False)
+#         plt.subplot(414)
+#         plt.errorbar(range(data_mean.shape[1]), data_mean[3], 2 * data_std[3])
+#         plt.ylabel('tri', weight='bold')
+#         plt.xlabel('timestep', weight='bold')
+#
+#     plt.figure(figsize=(6, 6.7))
+#     plt.subplot(311)
+#     plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0], color='papayawhip')
+#     for i in range(data.shape[1]):
+#         plt.plot(data[0, i, :], color=color[i % len(color)])
+#     plt.ylabel('bic', weight='bold')
+#     ax = plt.gca()
+#     ax.axes.xaxis.set_visible(False)
+#     plt.subplot(312)
+#     plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1], color='papayawhip')
+#     for i in range(data.shape[1]):
+#         plt.plot(data[1, i, :], color=color[i % len(color)])
+#     plt.ylabel('brachialis', weight='bold')
+#     ax = plt.gca()
+#     ax.axes.xaxis.set_visible(False)
+#     plt.subplot(313)
+#     plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2], color='papayawhip')
+#     for i in range(data.shape[1]):
+#         plt.plot(data[2, i, :], color=color[i % len(color)])
+#     plt.xlabel('timestep', weight='bold')
+#
+#     if label == '3kg':
+#         np.save('emg/chenzui_mean_3kg', data_mean)
+#         np.save('emg/chenzui_std_3kg', data_std)
+#         np.save('emg/chenzui_trend_u_3kg', data_trend_u)
+#         np.save('emg/chenzui_trend_d_3kg', data_trend_d)
+#     elif label == '5.5kg':
+#         np.save('emg/chenzui_mean_5.5kg', data_mean)
+#         np.save('emg/chenzui_std_5.5kg', data_std)
+#         np.save('emg/chenzui_trend_u_3kg', data_trend_u)
+#         np.save('emg/chenzui_trend_d_3kg', data_trend_d)
+#
+#     # print(np.max(yt[:, 0, :, :]))
+#     # print(np.max(yt[:, 1, :, :]))
+#     # print(np.max(yt[:, 2, :, :]))
+#     # print(np.max(yt[:, 3, :, :]))
+#     # print(np.max(yt[:, 4, :, :]))
+#     plt.show()
+
+def calculate_chenzui_emg_distribution(label='1kg'):
     unified_len = 1000
     fs = 2000
-    data_set_number = 7
     if label == '3kg':
-        cz_11 = np.load('files/chenzui-3kg/emg-11.npy')
-        cz_13 = np.load('files/chenzui-3kg/emg-13.npy')
-        cz_14 = np.load('files/chenzui-3kg/emg-14.npy')
-        cz_15 = np.load('files/chenzui-3kg/emg-15.npy')
-        cz_16 = np.load('files/chenzui-3kg/emg-16.npy')
-        cz_17 = np.load('files/chenzui-3kg/emg-17.npy')
-        cz_18 = np.load('files/chenzui-3kg/emg-18.npy')
+        files = ['files/chenzui-3kg/emg-11.npy',
+                 'files/chenzui-3kg/emg-13.npy',
+                 'files/chenzui-3kg/emg-14.npy',
+                 'files/chenzui-3kg/emg-15.npy',
+                 'files/chenzui-3kg/emg-16.npy',
+                 'files/chenzui-3kg/emg-17.npy',
+                 'files/chenzui-3kg/emg-18.npy']
+        t_delta_emg = [4.131, 4.763, 7.0005, 14.9555, 4.7075, 4.426, 4.03]
+        t_delta_joi = [45.182, 209.74, 289.653, 391.032, 482.544, 563.707, 638.553]
+        timestep_emg = [[50.398, 57.531, 57.931, 70.13],
+                        [214.69, 223.09, 223.09, 236.139],
+                        [295.103, 303.336, 303.686, 316.469],
+                        [395.348, 402.648, 403.398, 415.981],
+                        [487.627, 495.31, 495.493, 509.676],
+                        [568.907, 577.106, 577.106, 590.106],
+                        [644.553, 653.669, 653.669, 668.352]]
     elif label == '5.5kg':
-        # cz_11 = np.load('files/chenzui-5.5kg/2.npy')
-        cz_11 = np.load('files/chenzui-5.5kg/7.npy')
-        cz_13 = np.load('files/chenzui-5.5kg/3.npy')
-        cz_14 = np.load('files/chenzui-5.5kg/4.npy')
-        cz_15 = np.load('files/chenzui-5.5kg/5.npy')
-        cz_16 = np.load('files/chenzui-5.5kg/6.npy')
-        cz_17 = np.load('files/chenzui-5.5kg/8.npy')
-        cz_18 = np.load('files/chenzui-5.5kg/9.npy')
+        files = ['files/chenzui-5.5kg/7.npy',
+                 'files/chenzui-5.5kg/3.npy',
+                 'files/chenzui-5.5kg/4.npy',
+                 'files/chenzui-5.5kg/5.npy',
+                 'files/chenzui-5.5kg/6.npy',
+                 'files/chenzui-5.5kg/8.npy',
+                 'files/chenzui-5.5kg/9.npy',]
+        t_delta_emg = [3.169, 3.0785, 4.427, 5.5625, 5.274, 5.7455, 7.0975]
+        t_delta_joi = [13.967, 11.783, 12.933, 14.066, 11.65, 12.833, 15.699]
+        timestep_emg = [[20.15, 30.299, 30.932, 44.298],
+                        [17.033, 27.482, 27.482, 42.531],
+                        [19.216, 29.799, 30.132, 44.398],
+                        [19.382, 30.648, 30.648, 46.048],
+                        [18.149, 28.249, 28.332, 42.515],
+                        [19.432, 29.532, 29.782, 43.015],
+                        [21.716, 32.449, 33.299, 49.748]]
+    elif label == '2.5kg-all':
+        files = ['files/chenzui-all/2.5-5.npy',
+                 'files/chenzui-all/2.5-6.npy',
+                 'files/chenzui-all/2.5-7.npy',
+                 'files/chenzui-all/2.5-8.npy',
+                 'files/chenzui-all/2.5-9.npy']
+        t_delta_emg = [3.464, 3.7925, 3.2645, 3.178, 4.6665]
+        t_delta_joi = [9.733, 7.65, 8.583, 11.249, 9.466]
+        timestep_emg = [[16.416, 27.065, 27.065, 41.681],
+                        [13.750, 24.782, 24.782, 42.731],
+                        [13.649, 25.982, 25.982, 41.598],
+                        [15.832, 28.482, 28.482, 44.864],
+                        [15.549, 26.365, 26.599, 40.031]]
+    elif label == '3kg-all':
+        files = ['files/chenzui-all/3-10.npy',
+                 'files/chenzui-all/3-11.npy',
+                 'files/chenzui-all/3-12.npy',
+                 'files/chenzui-all/3-13.npy',
+                 'files/chenzui-all/3-14.npy']
+        t_delta_emg = [7.177, 3.5745, 5.055, 4.588, 9.098]
+        t_delta_joi = [10.1, 8.866, 9.283, 6.983, 12.816]
+        timestep_emg = [[15.599, 26.249, 26.532, 39.348],
+                        [15.216, 25.582, 25.582, 40.781],
+                        [16.066, 28.299, 28.299, 40.882],
+                        [12.049, 22.699, 22.699, 34.965],
+                        [17.849, 29.365, 29.365, 43.381]]
+    elif label == '4kg-all':
+        files = ['files/chenzui-all/4-15.npy',
+                 'files/chenzui-all/4-16.npy',
+                 'files/chenzui-all/4-17.npy',]
+        t_delta_emg = [3.3555, 4.450, 3.735]
+        t_delta_joi = [9.7, 8.783, 7.233]
+        timestep_emg = [[14.966, 24.216, 24.216, 37.399],
+                        [13.133, 23.899, 23.899, 37.565],
+                        [11.433, 22.516, 22.516, 35.682]]
+    elif label == '6.5kg-all':
+        files = ['files/chenzui-all/6.5-18.npy',
+                 'files/chenzui-all/6.5-19.npy',
+                 'files/chenzui-all/6.5-20.npy',
+                 'files/chenzui-all/6.5-21.npy',
+                 'files/chenzui-all/6.5-22.npy']
+        t_delta_emg = [4.869, 4.0085, 6.505, 3.8335, 13.803]
+        t_delta_joi = [6.183, 6.033, 8.0, 6.65, 15.4]
+        timestep_emg = [[11.233, 23.465, 23.465, 37.948],
+                        [11.833, 25.132, 25.132, 36.548],
+                        [14.633, 27.399, 27.399, 40.465],
+                        [11.9, 24.599, 24.599, 37.465],
+                        [19.466, 30.415, 31.749, 45.781]]  # 6.5kg
+    elif label == 'all-1':
+        files = ['files/chenzui-all/2.5-5.npy',
+                 'files/chenzui-all/2.5-6.npy',
+                 'files/chenzui-all/2.5-7.npy',
+                 'files/chenzui-all/2.5-8.npy',
+                 'files/chenzui-all/2.5-9.npy',
+                 'files/chenzui-all/3-10.npy',
+                 'files/chenzui-all/3-11.npy',
+                 'files/chenzui-all/3-12.npy',
+                 'files/chenzui-all/3-13.npy',
+                 'files/chenzui-all/3-14.npy',
+                 'files/chenzui-all/4-15.npy',
+                 'files/chenzui-all/4-16.npy',
+                 'files/chenzui-all/4-17.npy',
+                 'files/chenzui-all/6.5-18.npy',
+                 'files/chenzui-all/6.5-19.npy',
+                 'files/chenzui-all/6.5-20.npy',
+                 'files/chenzui-all/6.5-21.npy',
+                 'files/chenzui-all/6.5-22.npy']
+        t_delta_emg = [3.464, 3.7925, 3.2645, 3.178, 4.6665,
+                       7.177, 3.5745, 5.055, 4.588, 9.098,
+                       3.3555, 4.450, 3.735,
+                       4.869, 4.0085, 6.505, 3.8335, 13.803]
+        t_delta_joi = [9.733, 7.65, 8.583, 11.249, 9.466,
+                       10.1, 8.866, 9.283, 6.983, 12.816,
+                       9.7, 8.783, 7.233,
+                       6.183, 6.033, 8.0, 6.65, 15.4]
+        timestep_emg = [[16.416, 27.065, 27.065, 41.681],
+                        [13.750, 24.782, 24.782, 42.731],
+                        [13.649, 25.982, 25.982, 41.598],
+                        [15.832, 28.482, 28.482, 44.864],
+                        [15.549, 26.365, 26.599, 40.031], # 2.5kg
+                        [15.599, 26.249, 26.532, 39.348],
+                        [15.216, 25.582, 25.582, 40.781],
+                        [16.066, 28.299, 28.299, 40.882],
+                        [12.049, 22.699, 22.699, 34.965],
+                        [17.849, 29.365, 29.365, 43.381], # 3kg
+                        [14.966, 24.216, 24.216, 37.399],
+                        [13.133, 23.899, 23.899, 37.565],
+                        [11.433, 22.516, 22.516, 35.682], # 4kg
+                        [11.233, 23.465, 23.465, 37.948],
+                        [11.833, 25.132, 25.132, 36.548],
+                        [14.633, 27.399, 27.399, 40.465],
+                        [11.9, 24.599, 24.599, 37.465],
+                        [19.466, 30.415, 31.749, 45.781]] # 6.5kg
+    elif label == 'all':
+        files = ['files/chenzui-all/2.5-5.npy',
+                 'files/chenzui-all/2.5-6.npy',
+                 'files/chenzui-all/2.5-7.npy',
+                 'files/chenzui-all/2.5-8.npy',
+                 'files/chenzui-all/2.5-9.npy',
+                 'files/chenzui-all/3-10.npy',
+                 'files/chenzui-all/3-11.npy',
+                 'files/chenzui-all/3-12.npy',
+                 'files/chenzui-all/3-13.npy',
+                 'files/chenzui-all/3-14.npy',
+                 'files/chenzui-all/4-15.npy',
+                 'files/chenzui-all/4-16.npy',
+                 'files/chenzui-all/4-17.npy']
+        t_delta_emg = [3.464, 3.7925, 3.2645, 3.178, 4.6665,
+                       7.177, 3.5745, 5.055, 4.588, 9.098,
+                       3.3555, 4.450, 3.735]
+        t_delta_joi = [9.733, 7.65, 8.583, 11.249, 9.466,
+                       10.1, 8.866, 9.283, 6.983, 12.816,
+                       9.7, 8.783, 7.233]
+        timestep_emg = [[16.416, 27.065, 27.065, 41.681],
+                        [13.750, 24.782, 24.782, 42.731],
+                        [13.649, 25.982, 25.982, 41.598],
+                        [15.832, 28.482, 28.482, 44.864],
+                        [15.549, 26.365, 26.599, 40.031], # 2.5kg
+                        [15.599, 26.249, 26.532, 39.348],
+                        [15.216, 25.582, 25.582, 40.781],
+                        [16.066, 28.299, 28.299, 40.882],
+                        [12.049, 22.699, 22.699, 34.965],
+                        [17.849, 29.365, 29.365, 43.381], # 3kg
+                        [14.966, 24.216, 24.216, 37.399],
+                        [13.133, 23.899, 23.899, 37.565],
+                        [11.433, 22.516, 22.516, 35.682]] # 4kg
+    else:
+        print('No label:', label)
 
-    [cz_11, t_cz_11] = emg_file_progressing(cz_11, fs)
-    [cz_13, t_cz_13] = emg_file_progressing(cz_13, fs)
-    [cz_14, t_cz_14] = emg_file_progressing(cz_14, fs)
-    [cz_15, t_cz_15] = emg_file_progressing(cz_15, fs)
-    [cz_16, t_cz_16] = emg_file_progressing(cz_16, fs)
-    [cz_17, t_cz_17] = emg_file_progressing(cz_17, fs)
-    [cz_18, t_cz_18] = emg_file_progressing(cz_18, fs)
-    if label == '3kg':
-        t_cz_11 = t_cz_11 - 4.131 + 45.182  # 11
-        t_cz_13 = t_cz_13 - 4.763 + 209.74  # 13
-        t_cz_14 = t_cz_14 - 7.0005 + 289.653  # 14
-        t_cz_15 = t_cz_15 - 14.9555 + 391.032  # 15
-        t_cz_16 = t_cz_16 - 4.7075 + 482.544  # 16
-        t_cz_17 = t_cz_17 - 4.426 + 563.707  # 17
-        t_cz_18 = t_cz_18 - 4.03 + 638.553  # 18
-        timestep_emg_11 = [50.398, 57.531, 57.931, 70.13]
-        timestep_emg_13 = [214.69, 223.09, 223.09, 236.139]
-        timestep_emg_14 = [295.103, 303.336, 303.686, 316.469]
-        timestep_emg_15 = [395.348, 402.648, 403.398, 415.981]
-        timestep_emg_16 = [487.627, 495.31, 495.493, 509.676]
-        timestep_emg_17 = [568.907, 577.106, 577.106, 590.106]
-        timestep_emg_18 = [644.553, 653.669, 653.669, 668.352]
-    elif label == '5.5kg':
-        # t_cz_11 = t_cz_11 - 3.638 + 12.099
-        t_cz_11 = t_cz_11 - 3.169 + 13.967
-        t_cz_13 = t_cz_13 - 3.0785 + 11.783
-        t_cz_14 = t_cz_14 - 4.427 + 12.933
-        t_cz_15 = t_cz_15 - 5.5625 + 14.066
-        t_cz_16 = t_cz_16 - 5.274 + 11.65
-        # t_cz_17 = t_cz_17 - 3.169 + 13.967
-        t_cz_17 = t_cz_17 - 5.7455 + 12.833
-        t_cz_18 = t_cz_18 - 7.0975 + 15.699
-        # timestep_emg_11 = [17.582, 28.415, 28.415, 43.481]
-        timestep_emg_11 = [20.15, 30.299, 30.932, 44.298]
-        timestep_emg_13 = [17.033, 27.482, 27.482, 42.531]
-        timestep_emg_14 = [19.216, 29.799, 30.132, 44.398]
-        timestep_emg_15 = [19.382, 30.648, 30.648, 46.048]
-        timestep_emg_16 = [18.149, 28.249, 28.332, 42.515]
-        # timestep_emg_17 = [20.15, 30.299, 30.932, 44.298]
-        timestep_emg_17 = [19.432, 29.532, 29.782, 43.015]
-        timestep_emg_18 = [21.716, 32.449, 33.299, 49.748]
+    data_set_number = len(files)
+    # if label == '3kg' or label == '5.5kg':
+    #     data_set_number = 7
+    # elif label == '2.5kg':
+    #     data_set_number = 5
+    emg_all = [([]) for _ in range(data_set_number)]
+    t_emg_all = [([]) for _ in range(data_set_number)]
+    for i in range(data_set_number):
+        emg_all[i] = np.load(files[i])
+        [emg_all[i], t_emg_all[i]] = emg_file_progressing(emg_all[i], fs, 'zhuo')
+        t_emg_all[i] = t_emg_all[i] - t_delta_emg[i] + t_delta_joi[i]
 
     if include_TRI is True:
-        yt = [([], [], [], []) for _ in range(data_set_number)]  # number of muscle
+        muscles = [([], [], [], []) for _ in range(data_set_number)]  # number of muscle
     else:
-        yt = [([], [], []) for _ in range(data_set_number)]  # number of muscle
-    for j in range(len(muscle_idx)):
-        for i in range(int(len(timestep_emg_11) / 2)):
-            yt[0][j].append(resample_by_len(cz_11[j, find_nearest_idx(t_cz_11, timestep_emg_11[2 * i]):
-                                                     find_nearest_idx(t_cz_11, timestep_emg_11[2 * i + 1])], unified_len))
-            yt[1][j].append(resample_by_len(cz_13[j, find_nearest_idx(t_cz_13, timestep_emg_13[2 * i]):
-                                                     find_nearest_idx(t_cz_13, timestep_emg_13[2 * i + 1])], unified_len))
-            yt[2][j].append(resample_by_len(cz_14[j, find_nearest_idx(t_cz_14, timestep_emg_14[2 * i]):
-                                                     find_nearest_idx(t_cz_14, timestep_emg_14[2 * i + 1])], unified_len))
-            yt[3][j].append(resample_by_len(cz_15[j, find_nearest_idx(t_cz_15, timestep_emg_15[2 * i]):
-                                                     find_nearest_idx(t_cz_15, timestep_emg_15[2 * i + 1])], unified_len))
-            yt[4][j].append(resample_by_len(cz_16[j, find_nearest_idx(t_cz_16, timestep_emg_16[2 * i]):
-                                                     find_nearest_idx(t_cz_16, timestep_emg_16[2 * i + 1])], unified_len))
-            yt[5][j].append(resample_by_len(cz_17[j, find_nearest_idx(t_cz_17, timestep_emg_17[2 * i]):
-                                                     find_nearest_idx(t_cz_17, timestep_emg_17[2 * i + 1])], unified_len))
-            yt[6][j].append(resample_by_len(cz_18[j, find_nearest_idx(t_cz_18, timestep_emg_18[2 * i]):
-                                                     find_nearest_idx(t_cz_18, timestep_emg_18[2 * i + 1])],
-                                            unified_len))
+        muscles = [([], [], []) for _ in range(data_set_number)]  # number of muscle
+    for k in range(data_set_number):
+        for j in range(len(muscle_idx)):
+            for i in range(int(len(timestep_emg[k]) / 2)):
+                muscles[k][j].append(resample_by_len(emg_all[k][j, find_nearest_idx(t_emg_all[k], timestep_emg[k][
+                    2 * i]): find_nearest_idx(t_emg_all[k], timestep_emg[k][2 * i + 1])], unified_len))
 
-    yt = np.asarray(yt)
+    muscles = np.asarray(muscles)
 
-    plt.figure(figsize=(6, 6.7))
     data = [([]) for _ in range(len(muscle_idx))]
     for k in range(len(muscle_idx)):
         for i in range(data_set_number):
-                data[k].append(np.concatenate([yt[i, k, 0, :], yt[i, k, 1, :]]))
+            data[k].append(np.concatenate([muscles[i, k, 0, :], muscles[i, k, 1, :]]))
     data = np.asarray(data)
+
+    # NUMPASSES = 3
+    # LOWPASSRATE = 3  # 低通滤波4—10Hz得到包络线
+    # Fs = 400
+    # Wn = LOWPASSRATE / (Fs / 2)
+    # [b, a] = scipy.signal.butter(NUMPASSES, Wn, 'low')
+    # data = scipy.signal.filtfilt(b, a, data, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))  # 低通滤波
+
+    # plt.figure(figsize=(6, 6.7))
+    # plt.subplot(311)
+    # plt.plot(data[0, 0, :])
+    # plt.plot(data[0, 1, :])
+    # plt.ylabel('biceps', weight='bold')
+    # ax = plt.gca()
+    # ax.axes.xaxis.set_visible(False)
+    # plt.subplot(312)
+    # plt.plot(data[1, 0, :])
+    # plt.plot(data[1, 1, :])
+    # plt.ylabel('brachialis', weight='bold')
+    # ax = plt.gca()
+    # ax.axes.xaxis.set_visible(False)
+    # plt.subplot(313)
+    # plt.plot(data[2, 0, :])
+    # plt.plot(data[2, 1, :])
+    # # plt.show()
+
     data_mean = np.ones([data.shape[0], data.shape[2]])
     data_std = np.ones([data.shape[0], data.shape[2]])
+    data_trend_u = np.ones([data.shape[0], data.shape[2] - 1])
+    data_trend_d = np.ones([data.shape[0], data.shape[2] - 1])
     for i in range(len(muscle_idx)):  # three muscles
         data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
         data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
+        # data_trend_u[i] = np.asarray([np.max(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
+        # data_trend_d[i] = np.asarray([np.min(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
+        data_trend_u[i] = np.asarray([(np.max(data[i, :, j + 1] - data[i, :, j])/0.01) for j in range(data.shape[2] - 1)])
+        data_trend_d[i] = np.asarray([(np.min(data[i, :, j + 1] - data[i, :, j])/0.01) for j in range(data.shape[2] - 1)])
+        # data_trend_u[i] = np.asarray([np.max(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
+        # data_trend_d[i] = np.asarray([np.min(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
+
+    # plt.figure(figsize=(6, 6.7))
+    # plt.subplot(311)
+    # # plt.plot(data_mean[0])
+    # # plt.plot(np.hstack([data_mean[0, 0], data_mean[0, :-1] * data_trend_u[0]]))
+    # # plt.plot(np.hstack([data_mean[0, 0], data_mean[0, :-1] * data_trend_d[0]]))
+    # plt.plot(data_trend_u[0])
+    # plt.plot(data_trend_d[0])
+    # plt.ylabel('biceps', weight='bold')
+    # ax = plt.gca()
+    # ax.axes.xaxis.set_visible(False)
+    # plt.subplot(312)
+    # # plt.plot(data_mean[1])
+    # # plt.plot(np.hstack([data_mean[1, 0], data_mean[1, :-1] * data_trend_u[1]]))
+    # # plt.plot(np.hstack([data_mean[1, 0], data_mean[1, :-1] * data_trend_d[1]]))
+    # plt.plot(data_trend_u[1])
+    # plt.plot(data_trend_d[1])
+    # plt.ylabel('brachialis', weight='bold')
+    # ax = plt.gca()
+    # ax.axes.xaxis.set_visible(False)
+    # plt.subplot(313)
+    # # plt.plot(data_mean[2])
+    # # plt.plot(np.hstack([data_mean[2, 0], data_mean[2, :-1] * data_trend_u[2]]))
+    # # plt.plot(np.hstack([data_mean[2, 0], data_mean[2, :-1] * data_trend_d[2]]))
+    # plt.plot(data_trend_u[2])
+    # plt.plot(data_trend_d[2])
+    # plt.ylabel('brachiorad', weight='bold')
+    # plt.xlabel('timestep', weight='bold')
+
+    plt.figure(figsize=(6, 6.7))
     color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     plt.subplot(311)
     for i in range(data.shape[1]):
         plt.plot(data[0, i, :], color=color[i % len(color)])
-    plt.ylabel('bic', weight='bold')
+    plt.ylabel('biceps', weight='bold')
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     plt.subplot(312)
@@ -1159,7 +1884,7 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         plt.figure(figsize=(6, 6.7))
         plt.subplot(311)
         plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
-        plt.ylabel('bic', weight='bold')
+        plt.ylabel('biceps', weight='bold')
         ax = plt.gca()
         ax.axes.xaxis.set_visible(False)
         plt.subplot(312)
@@ -1198,7 +1923,7 @@ def calculate_chenzui_emg_distribution(label='3kg'):
     plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0], color='papayawhip')
     for i in range(data.shape[1]):
         plt.plot(data[0, i, :], color=color[i % len(color)])
-    plt.ylabel('bic', weight='bold')
+    plt.ylabel('biceps', weight='bold')
     ax = plt.gca()
     ax.axes.xaxis.set_visible(False)
     plt.subplot(312)
@@ -1214,12 +1939,298 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         plt.plot(data[2, i, :], color=color[i % len(color)])
     plt.xlabel('timestep', weight='bold')
 
-    if label == '3kg':
+    if label == '2.5kg-all':
+        np.save('emg/chenzui_mean_2.5kg', data_mean)
+        np.save('emg/chenzui_std_2.5kg', data_std)
+        np.save('emg/chenzui_trend_u_2.5kg', data_trend_u)
+        np.save('emg/chenzui_trend_d_2.5kg', data_trend_d)
+    elif label == '3kg-all':
         np.save('emg/chenzui_mean_3kg', data_mean)
         np.save('emg/chenzui_std_3kg', data_std)
+        np.save('emg/chenzui_trend_u_3kg', data_trend_u)
+        np.save('emg/chenzui_trend_d_3kg', data_trend_d)
+    elif label == '4kg-all':
+        np.save('emg/chenzui_mean_4kg', data_mean)
+        np.save('emg/chenzui_std_4kg', data_std)
+        np.save('emg/chenzui_trend_u_4kg', data_trend_u)
+        np.save('emg/chenzui_trend_d_4kg', data_trend_d)
+    elif label == '6.5kg-all':
+        np.save('emg/chenzui_mean_6.5kg', data_mean)
+        np.save('emg/chenzui_std_6.5kg', data_std)
+        np.save('emg/chenzui_trend_u_6.5kg', data_trend_u)
+        np.save('emg/chenzui_trend_d_6.5kg', data_trend_d)
+    elif label == '3kg':
+        np.save('emg/chenzui_mean_3kg', data_mean)
+        np.save('emg/chenzui_std_3kg', data_std)
+        np.save('emg/chenzui_trend_u_3kg', data_trend_u)
+        np.save('emg/chenzui_trend_d_3kg', data_trend_d)
     elif label == '5.5kg':
         np.save('emg/chenzui_mean_5.5kg', data_mean)
         np.save('emg/chenzui_std_5.5kg', data_std)
+        np.save('emg/chenzui_trend_u_5.5kg', data_trend_u)
+        np.save('emg/chenzui_trend_d_5.5kg', data_trend_d)
+    elif label == 'all' or label == 'all-1':
+        np.save('emg/chenzui_mean_all', data_mean)
+        np.save('emg/chenzui_std_all', data_std)
+        np.save('emg/chenzui_trend_u_all', data_trend_u)
+        np.save('emg/chenzui_trend_d_all', data_trend_d)
+
+    # print(np.max(yt[:, 0, :, :]))
+    # print(np.max(yt[:, 1, :, :]))
+    # print(np.max(yt[:, 2, :, :]))
+    # print(np.max(yt[:, 3, :, :]))
+    # print(np.max(yt[:, 4, :, :]))
+    plt.show()
+
+
+def calculate_lizhuo_emg_distribution(label='1kg'):
+    unified_len = 1000
+    fs = 2000
+    data_set_number = 7
+    emg_all = [([]) for _ in range(data_set_number)]
+    t_emg_all = [([]) for _ in range(data_set_number)]
+    if label == '1kg':
+        files = ['files/lizhuo-1kg/2.npy',
+                 'files/lizhuo-1kg/3.npy',
+                 'files/lizhuo-1kg/4.npy',
+                 'files/lizhuo-1kg/6.npy',
+                 'files/lizhuo-1kg/7.npy',
+                 'files/lizhuo-1kg/8.npy',
+                 'files/lizhuo-1kg/9.npy']
+        t_delta_emg = [11.3095, 4.0, 4.3385, 4.9365, 4.8945, 3.5095, 4.2645]
+        t_delta_joi = [16.0, 12.149, 16.416, 11.283, 11.033, 8.433, 9.899]
+        timestep_emg = [[20.016, 27.599, 27.599, 37.465],
+                        [14.365, 25.798, 25.798, 36.248],
+                        [12.766, 27.032, 27.032, 39.865],
+                        [13.483, 25.832, 25.866, 55.331],
+                        [12.566, 29.299, 29.299, 53.014],
+                        [9.55, 33.932, 33.932, 56.414],
+                        [12.199, 29.698, 29.698, 51.514]]
+    elif label == '3kg':
+        files = ['files/lizhuo-3kg/1.npy',
+                 'files/lizhuo-3kg/2.npy',
+                 'files/lizhuo-3kg/3.npy',
+                 'files/lizhuo-3kg/5.npy',
+                 'files/lizhuo-3kg/6.npy',
+                 # 'files/lizhuo-3kg/7.npy',
+                 'files/lizhuo-3kg/8.npy',
+                 'files/lizhuo-3kg/9.npy',
+                 'files/lizhuo-3kg/10.npy',
+                 'files/lizhuo-3kg/11.npy',
+                 'files/lizhuo-3kg/12.npy']
+        # t_delta_emg = [4.2525, 8.14, 3.6615, 3.642, 4.103, 7.3255, 3.873, 4.2335, 4.1045, 5.6695, 7.29]
+        # t_delta_joi = [13.067, 14.1, 9.866, 7.749, 9.716, 13.183, 9.866, 9.75, 9.367, 12.766, 14.749]
+        t_delta_emg = [4.2525, 8.14, 3.6615, 3.642, 4.103, 3.873, 4.2335, 4.1045, 5.6695, 7.29]
+        t_delta_joi = [13.067, 14.1, 9.866, 7.749, 9.716, 9.866, 9.75, 9.367, 12.766, 14.749]
+        timestep_emg = [[20.383, 32.832, 32.832, 46.348],
+                        [19.250, 32.449, 32.449, 47.765],
+                        [14.866, 29.916, 29.916, 48.015],
+                        [12.099, 24.215, 25.932, 42.098],
+                        [14.133, 30.015, 30.015, 50.098],
+                        # [15.933, 24.233, 24.233, 37.882],
+                        [15.332, 25.449, 25.449, 39.265],
+                        [13.7, 27.116, 27.116, 37.649],
+                        [12.8, 20.0, 20.0, 28.799],  # 7.20s, 8.80s
+                        [16.099, 25.332, 25.332, 37.848],
+                        [19.032, 21.649, 21.649, 24.465],  # 2.62s, 2.82s
+                        [24.465, 26.865, 26.865, 30.165],  # 2.40s, 3.30s
+                        [30.665, 33.198, 33.198, 36.498]]
+    elif label == '3kg-f':
+        files = ['files/lizhuo-3kg/12.npy',
+                 'files/lizhuo-3kg/12.npy',
+                 'files/lizhuo-3kg/12.npy']
+        t_delta_emg = [7.29, 7.29, 7.29]
+        t_delta_joi = [14.749, 14.749, 14.749]
+        timestep_emg = [[19.032, 21.649, 21.649, 24.465],  # 2.62s, 2.82s
+                        [24.465, 26.865, 26.865, 30.165],  # 2.40s, 3.30s
+                        [30.665, 33.198, 33.198, 36.498]]  # 2.53s, 3.30s
+    else:
+        print('No label:', label)
+    for i in range(data_set_number):
+        emg_all[i] = np.load(files[i])
+        [emg_all[i], t_emg_all[i]] = emg_file_progressing(emg_all[i], fs, 'zhuo')
+        t_emg_all[i] = t_emg_all[i] - t_delta_emg[i] + t_delta_joi[i]
+
+    if include_TRI is True:
+        muscles = [([], [], [], []) for _ in range(data_set_number)]  # number of muscle
+    else:
+        muscles = [([], [], []) for _ in range(data_set_number)]  # number of muscle
+    for k in range(data_set_number):
+        for j in range(len(muscle_idx)):
+            for i in range(int(len(timestep_emg[k]) / 2)):
+                muscles[k][j].append(resample_by_len(emg_all[k][j, find_nearest_idx(t_emg_all[k], timestep_emg[k][
+                    2 * i]): find_nearest_idx(t_emg_all[k], timestep_emg[k][2 * i + 1])], unified_len))
+
+    muscles = np.asarray(muscles)
+
+    data = [([]) for _ in range(len(muscle_idx))]
+    for k in range(len(muscle_idx)):
+        for i in range(data_set_number):
+            data[k].append(np.concatenate([muscles[i, k, 0, :], muscles[i, k, 1, :]]))
+    data = np.asarray(data)
+
+    NUMPASSES = 3
+    LOWPASSRATE = 3  # 低通滤波4—10Hz得到包络线
+    Fs = 200
+    Wn = LOWPASSRATE / (Fs / 2)
+    [b, a] = scipy.signal.butter(NUMPASSES, Wn, 'low')
+    data = scipy.signal.filtfilt(b, a, data, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))  # 低通滤波
+
+    plt.figure(figsize=(6, 6.7))
+    plt.subplot(311)
+    plt.plot(data[0, 0, :])
+    plt.plot(data[0, 1, :])
+    plt.ylabel('biceps', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(312)
+    plt.plot(data[1, 0, :])
+    plt.plot(data[1, 1, :])
+    plt.ylabel('brachialis', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(313)
+    plt.plot(data[2, 0, :])
+    plt.plot(data[2, 1, :])
+    # plt.show()
+
+    data_mean = np.ones([data.shape[0], data.shape[2]])
+    data_std = np.ones([data.shape[0], data.shape[2]])
+    data_trend_u = np.ones([data.shape[0], data.shape[2] - 1])
+    data_trend_d = np.ones([data.shape[0], data.shape[2] - 1])
+    for i in range(len(muscle_idx)):  # three muscles
+        data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
+        data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
+        # data_trend_u[i] = np.asarray([np.max(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
+        # data_trend_d[i] = np.asarray([np.min(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
+        data_trend_u[i] = np.asarray([(np.max(data[i, :, j + 1] - data[i, :, j])/0.01) for j in range(data.shape[2] - 1)])
+        data_trend_d[i] = np.asarray([(np.min(data[i, :, j + 1] - data[i, :, j])/0.01) for j in range(data.shape[2] - 1)])
+        # data_trend_u[i] = np.asarray([np.max(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
+        # data_trend_d[i] = np.asarray([np.min(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
+
+    plt.figure(figsize=(6, 6.7))
+    plt.subplot(311)
+    # plt.plot(data_mean[0])
+    # plt.plot(np.hstack([data_mean[0, 0], data_mean[0, :-1] * data_trend_u[0]]))
+    # plt.plot(np.hstack([data_mean[0, 0], data_mean[0, :-1] * data_trend_d[0]]))
+    plt.plot(data_trend_u[0])
+    plt.plot(data_trend_d[0])
+    plt.ylabel('biceps', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(312)
+    # plt.plot(data_mean[1])
+    # plt.plot(np.hstack([data_mean[1, 0], data_mean[1, :-1] * data_trend_u[1]]))
+    # plt.plot(np.hstack([data_mean[1, 0], data_mean[1, :-1] * data_trend_d[1]]))
+    plt.plot(data_trend_u[1])
+    plt.plot(data_trend_d[1])
+    plt.ylabel('brachialis', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(313)
+    # plt.plot(data_mean[2])
+    # plt.plot(np.hstack([data_mean[2, 0], data_mean[2, :-1] * data_trend_u[2]]))
+    # plt.plot(np.hstack([data_mean[2, 0], data_mean[2, :-1] * data_trend_d[2]]))
+    plt.plot(data_trend_u[2])
+    plt.plot(data_trend_d[2])
+    plt.ylabel('brachiorad', weight='bold')
+    plt.xlabel('timestep', weight='bold')
+
+    plt.figure(figsize=(6, 6.7))
+    color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    plt.subplot(311)
+    for i in range(data.shape[1]):
+        plt.plot(data[0, i, :], color=color[i % len(color)])
+    plt.ylabel('biceps', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(312)
+    for i in range(data.shape[1]):
+        plt.plot(data[1, i, :], color=color[i % len(color)])
+    plt.ylabel('brachialis', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(313)
+    for i in range(data.shape[1]):
+        plt.plot(data[2, i, :], color=color[i % len(color)])
+    # for i in range(data.shape[1]):
+    #     if i < 3:
+    #         plt.plot(data[2, i, :], color=color[i % 3], label=label[i])
+    #     else:
+    #         plt.plot(data[2, i, :], color=color[i % 3])
+    # plt.legend()
+    plt.ylabel('brachiorad', weight='bold')
+    plt.xlabel('timestep', weight='bold')
+
+    if include_TRI is False:
+        plt.figure(figsize=(6, 6.7))
+        plt.subplot(311)
+        plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
+        plt.ylabel('biceps', weight='bold')
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        plt.subplot(312)
+        plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1])
+        plt.ylabel('brachialis', weight='bold')
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        plt.subplot(313)
+        plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2])
+        plt.ylabel('brachiorad', weight='bold')
+        plt.xlabel('timestep', weight='bold')
+    else:
+        plt.figure(figsize=(6, 6.7))
+        plt.subplot(411)
+        plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
+        plt.ylabel('bic', weight='bold')
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        plt.subplot(412)
+        plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1])
+        plt.ylabel('brachialis', weight='bold')
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        plt.subplot(413)
+        plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2])
+        plt.ylabel('brachiorad', weight='bold')
+        ax = plt.gca()
+        ax.axes.xaxis.set_visible(False)
+        plt.subplot(414)
+        plt.errorbar(range(data_mean.shape[1]), data_mean[3], 2 * data_std[3])
+        plt.ylabel('tri', weight='bold')
+        plt.xlabel('timestep', weight='bold')
+
+    plt.figure(figsize=(6, 6.7))
+    plt.subplot(311)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0], color='papayawhip')
+    for i in range(data.shape[1]):
+        plt.plot(data[0, i, :], color=color[i % len(color)])
+    plt.ylabel('biceps', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(312)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[1], 2 * data_std[1], color='papayawhip')
+    for i in range(data.shape[1]):
+        plt.plot(data[1, i, :], color=color[i % len(color)])
+    plt.ylabel('brachialis', weight='bold')
+    ax = plt.gca()
+    ax.axes.xaxis.set_visible(False)
+    plt.subplot(313)
+    plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2], color='papayawhip')
+    for i in range(data.shape[1]):
+        plt.plot(data[2, i, :], color=color[i % len(color)])
+    plt.xlabel('timestep', weight='bold')
+
+    if label == '1kg':
+        np.save('emg/lizhuo_mean_1kg', data_mean)
+        np.save('emg/lizhuo_std_1kg', data_std)
+        np.save('emg/lizhuo_trend_u_1kg', data_trend_u)
+        np.save('emg/lizhuo_trend_d_1kg', data_trend_d)
+    elif label == '3kg':
+        np.save('emg/lizhuo_mean_3kg', data_mean)
+        np.save('emg/lizhuo_std_3kg', data_std)
+        np.save('emg/lizhuo_trend_u_3kg', data_trend_u)
+        np.save('emg/lizhuo_trend_d_3kg', data_trend_d)
 
     # print(np.max(yt[:, 0, :, :]))
     # print(np.max(yt[:, 1, :, :]))
@@ -1284,7 +2295,7 @@ def calculate_torque():
     plt.show()
 
 
-def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque):
+def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c):
     if only_lift is True:
         len1 = target_len
         len2 = emg_lift_len
@@ -1458,7 +2469,7 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
         plt.plot(time, np.asarray(t), label='optimization', linewidth=2)
         plt.plot(time, torque, label='measured', linewidth=2)
         # plt.xlabel('time (s)')
-        plt.ylabel('torque', weight='bold')
+        plt.ylabel('torque', weight='bold', size=10)
         plt.legend()
         rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
         print("torque rmse", num, ":\t", "{:.2f}".format(rmse))
@@ -1475,7 +2486,7 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
             plt.plot(time, np.asarray(emg[0]), label='emg', linewidth=2, zorder=3)
         plt.plot(time, np.asarray(r[0, :]), label='optimization', linewidth=2, zorder=2)
         # plt.xlabel('time (s)')
-        plt.ylabel('bic_s_l', weight='bold')
+        plt.ylabel('biceps', weight='bold')
         plt.legend()
 
         plt.subplot(413)
@@ -1484,13 +2495,13 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
                 plt.errorbar(time_long, emg_mean_long[1, :] * c[1], 2 * emg_std_long[1, :] * c[1], label='emg',
                              color='lavender', zorder=1)
             else:
-                plt.errorbar(time_long, emg_mean_long[1, :], 2 * emg_std_long[1, :], label='emg', color='lavender',
+                plt.errorbar(time_long, emg_mean_long[1, :], 2.5 * emg_std_long[1, :], label='emg', color='lavender',
                              zorder=1)
         else:
             plt.plot(time, np.asarray(emg[1]), label='emg', linewidth=2, zorder=3)
         plt.plot(time, np.asarray(r[1, :]), label='optimization', linewidth=2, zorder=2)
         # plt.xlabel('time (s)')
-        plt.ylabel('brachialis_1_l', weight='bold')
+        plt.ylabel('brachialis', weight='bold')
         plt.legend()
 
         # plt.figure()
@@ -1505,8 +2516,8 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
         else:
             plt.plot(time, np.asarray(emg[2]), label='emg', linewidth=2, zorder=3)
         plt.plot(time, np.asarray(r[2, :]), label='optimization', linewidth=2, zorder=2)
-        plt.xlabel('time (s)', weight='bold')
-        plt.ylabel('brachiorad_1_l', weight='bold')
+        plt.xlabel('time (s)', weight='bold', size=10)
+        plt.ylabel('brachiorad', weight='bold')
         plt.legend()
     else:
         plt.figure(figsize=(6, 7.7))
@@ -1578,6 +2589,7 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
         plt.xlabel('time (s)', weight='bold')
         plt.ylabel('tri', weight='bold')
         plt.legend()
+    plt.savefig('train_{}.png'.format(num))
 
     # plt.figure(figsize=(6, 3.7))
     # plt.plot(time, calu_torque, label='calculated', linewidth=2)
@@ -1589,7 +2601,7 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
     print("torque rmse:\t", "{:.2f}".format(rmse))
 
 
-def calurmse(c_r, y_r, emg, arm, torque, time):
+def calurmse(c_r, y_r, emg, arm, torque, time, label):
     if mvc_is_variable is True:
         active_force = emg.T * c_r * y_r
     else:
@@ -1602,48 +2614,460 @@ def calurmse(c_r, y_r, emg, arm, torque, time):
     plt.xlabel('time (s)', weight='bold')
     plt.ylabel('torque', weight='bold')
     plt.legend()
+    plt.savefig(label + '_train.png')
 
     rmse = np.sqrt(np.sum((np.asarray(calu_torque) - torque) ** 2) / len(torque))
     print("torque rmse:\t", "{:.2f}".format(rmse))
 
 
 def test_result(c_r, y_r):
-    emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
-        = read_chenzui_realted_files(label='5.5kg-5')
-    emg_mean2, emg_std2, arm2, fa2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2 \
-        = read_chenzui_realted_files(label='5.5kg-6')
-    emg_mean3, emg_std3, arm3, fa3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3 \
-        = read_chenzui_realted_files(label='5.5kg-7')
-    emg_mean4, emg_std4, arm4, fa4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4 \
-        = read_chenzui_realted_files(label='15')
-    emg_mean5, emg_std5, arm5, fa5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5 \
-        = read_chenzui_realted_files(label='17')
-    emg_mean6, emg_std6, arm6, fa6, torque6, time6, emg_mean_long6, emg_std_long6, emg6, time_emg6 \
-        = read_chenzui_realted_files(label='18')
-
-    print('-' * 50)
-    calurmse(c_r, y_r, emg1, arm1, torque1, time1)
-    calurmse(c_r, y_r, emg2, arm2, torque2, time2)
-    calurmse(c_r, y_r, emg3, arm3, torque3, time3)
-    calurmse(c_r, y_r, emg4, arm4, torque4, time4)
-    calurmse(c_r, y_r, emg5, arm5, torque5, time5)
-    calurmse(c_r, y_r, emg6, arm6, torque6, time6)
-
-
-def read_chenzui_groups_files():
-    emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
-        = read_chenzui_realted_files(label='11')
-    emg_mean2, emg_std2, arm2, fa2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2 \
-        = read_chenzui_realted_files(label='13')
-    emg_mean3, emg_std3, arm3, fa3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3 \
-        = read_chenzui_realted_files(label='14')
-
+    emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, emg_trend_u1, emg_trend_d1 \
+        = read_realted_files(label='chenzui-left-all-6.5kg', idx='18')
+    emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, emg_trend_u2, emg_trend_d2 \
+        = read_realted_files(label='chenzui-left-all-6.5kg', idx='19')
+    emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, emg_trend_u3, emg_trend_d3 \
+        = read_realted_files(label='chenzui-left-all-6.5kg', idx='20')
+    emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, emg_trend_u4, emg_trend_d4 \
+        = read_realted_files(label='chenzui-left-all-6.5kg', idx='21')
+    emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, emg_trend_u5, emg_trend_d5 \
+        = read_realted_files(label='chenzui-left-all-6.5kg', idx='22')
+    # emg_mean6, emg_std6, arm6, fa6, torque6, time6, emg_mean_long6, emg_std_long6, emg6, time_emg6 \
+    #     = read_chenzui_realted_files(label='zhuo-9')
+    # test_optimization_emg(0, y_r, torque1, time1, emg_mean_long1, emg_std_long1, arm1, emg1, emg_mean1, emg_std1, emg_trend_u1, emg_trend_d1)
+    # test_optimization_emg(1, y_r, torque2, time2, emg_mean_long2, emg_std_long2, arm2, emg2, emg_mean2, emg_std2, emg_trend_u2, emg_trend_d2)
+    # test_optimization_emg(2, y_r, torque3, time3, emg_mean_long3, emg_std_long3, arm3, emg3, emg_mean3, emg_std3, emg_trend_u3, emg_trend_d3)
+    # test_optimization_emg(3, y_r, torque4, time4, emg_mean_long4, emg_std_long4, arm4, emg4, emg_mean4, emg_std4, emg_trend_u4, emg_trend_d4)
+    # test_optimization_emg(4, y_r, torque5, time5, emg_mean_long5, emg_std_long5, arm5, emg5, emg_mean5, emg_std5, emg_trend_u5, emg_trend_d5)
+    # emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, emg_trend_u1, emg_trend_d1 = \
+    #     read_realted_files(label='zhuo-right-3kg', idx='3')
+    # emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
+    #     = read_realted_files(label='zhuo-2')
+    # emg_mean2, emg_std2, arm2, fa2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2 \
+    #     = read_realted_files(label='zhuo-3')
+    # emg_mean3, emg_std3, arm3, fa3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3 \
+    #     = read_realted_files(label='zhuo-9')
     # emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
     #     = read_chenzui_realted_files(label='5.5kg-2')
     # emg_mean2, emg_std2, arm2, fa2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2 \
-    #     = read_chenzui_realted_files(label='5.5kg-3')
+    #     = read_chenzui_realted_files(label='5.5kg-6')
     # emg_mean3, emg_std3, arm3, fa3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3 \
+    #     = read_chenzui_realted_files(label='5.5kg-7')
+    # emg_mean4, emg_std4, arm4, fa4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4 \
+    #     = read_chenzui_realted_files(label='15')
+    # emg_mean5, emg_std5, arm5, fa5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5 \
+    #     = read_chenzui_realted_files(label='17')
+    # emg_mean6, emg_std6, arm6, fa6, torque6, time6, emg_mean_long6, emg_std_long6, emg6, time_emg6 \
+    #     = read_chenzui_realted_files(label='18')
+
+    print('-' * 50)
+    # calurmse(c_r, y_r, emg1, arm1, torque1, time1, label='zhuo-right-3kg')
+    # calurmse(c_r, y_r, emg2, arm2, torque2, time2, label='zhuo-3')
+    # calurmse(c_r, y_r, emg3, arm3, torque3, time3, label='zhuo-9')
+    calurmse(c_r, y_r, emg1, arm1, torque1, time1, label='6.5kg-1')
+    calurmse(c_r, y_r, emg2, arm2, torque2, time2, label='6.5kg-2')
+    calurmse(c_r, y_r, emg3, arm3, torque3, time3, label='6.5kg-3')
+    calurmse(c_r, y_r, emg4, arm4, torque4, time4, label='6.5kg-4')
+    calurmse(c_r, y_r, emg5, arm5, torque5, time5, label='6.5kg-5')
+    # calurmse(c_r, y_r, emg6, arm6, torque6, time6, label='3kg-18')
+
+
+def test_optimization_emg(num, y, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std, emg_trend_u, emg_trend_d):
+    # m = gekko.GEKKO(remote=False)
+    # x = m.Array(m.Var, arm.shape, lb=0, ub=1)  # activation
+    # c = m.Array(m.Var, len(muscle_idx))  # MVC emg
+    # f = m.Array(m.Var, arm.shape)  # muscle force
+    # t = m.Array(m.Var, torque.shape)  # torque
+    # # m.Minimize(np.square(x - emg).mean())
+    # m.Minimize(np.square(t - torque).mean() + np.square(x).mean())
+    # for i in range(arm.shape[0]):
+    #     for j in range(arm.shape[1]):
+    #         m.Equation(x[i][j] * y[i] == f[i, j])
+    #         m.Equation(sum(f[:, j] * arm[:, j]) == t[j])
+    #     if mvc_is_variable is True:
+    #         m.Equations([c[i] >= 0.01, c[i] <= 5])
+    # # m.options.MAX_ITER = 100000
+    # m.solve(disp=False)
+
+    time_long = resample_by_len(list(time), emg_mean_long.shape[1])
+
+    m = gekko.GEKKO(remote=False)
+    x = m.Array(m.Var, arm.shape, lb=0, ub=1)  # activation
+    c = m.Array(m.Var, len(muscle_idx))  # MVC emg
+    f = m.Array(m.Var, arm.shape)  # muscle force
+    t = m.Array(m.Var, torque.shape)  # torque
+    # m.Minimize(np.square(t - torque).mean() + m.sqrt(np.square(x).mean()))
+    # m.Minimize(np.square(t - torque).mean() + np.mean(abs(x)))
+    m.Minimize(np.square(t - torque).mean())
+    # m.Minimize(m.sqrt(((t - torque) ** 2).mean()) + m.sqrt((x ** 2).mean()))
+    for i in range(arm.shape[0]):
+        for j in range(arm.shape[1]):
+            m.Equation(x[i][j] * y[i] == f[i, j])
+            m.Equation(sum(f[:, j] * arm[:, j]) == t[j])
+            if j < arm.shape[1] - 1:
+                m.Equation(x[i][j + 1] <= x[i][j] + target_len / emg_lift_len * 5 * emg_trend_u[i][j])
+                m.Equation(x[i][j + 1] >= x[i][j] + target_len / emg_lift_len * 5 * emg_trend_d[i][j])
+                # m.Equation(x[i][j + 1] <= x[i][j] + target_len / emg_lift_len * 10 * emg_trend_u[i][j])
+                # m.Equation(x[i][j + 1] >= x[i][j] + target_len / emg_lift_len * 10 * emg_trend_d[i][j])
+            m.Equation(x[i][j] <= (emg_mean[i][j] + emg_std[i][j] * 2))
+            m.Equation(x[i][j] >= (emg_mean[i][j] - emg_std[i][j] * 2))
+    # m.options.OTOL = 1  # 容差值
+    m.solve(disp=False)
+
+    xx = np.ones_like(x)
+    for i in range(x.shape[0]):
+        for j in range(x.shape[1]):
+            a = x[i][j].value[0]
+            xx[i][j] = xx[i][j] * x[i][j].value[0]
+    e = np.ones_like(t)
+    for i in range(t.shape[0]):
+        e[i] = e[i] * t[i].value[0]
+    t = e
+    act = np.asarray(xx)
+    tor = np.asarray(t)
+    # act = np.asarray([x[i].value[0] for i in range(arm.shape)])
+    # act = np.asarray([n.value[0] for n in x])
+    # tor = np.asarray([t[i].value[0] for i in range(arm.shape[1])])
+
+    # for j in range(arm.shape[1]):
+    #     # m = gekko.GEKKO(remote=False)
+    #     # x = m.Array(m.Var, arm.shape[0], lb=0, ub=1)  # activation
+    #     # c = m.Array(m.Var, len(muscle_idx))  # MVC emg
+    #     # f = m.Array(m.Var, arm.shape[0])  # muscle force
+    #     # t = m.Var()  # torque
+    #     # # t = m.Array(m.Var, 1)  # torque
+    #     # # m.Minimize(np.square(t - torque[j]) + np.square(x).sum())
+    #     # m.Minimize(np.square(t - torque[j]))
+    #     # # m.Minimize(np.square(x).sum())
+    #     for i in range(arm.shape[0]):
+    #         m.Equation(x[i] * y[i] == f[i])
+    #         if j < arm.shape[1] - 1:
+    #             m.Equation(x[i][j + 1] <= x[i][j] + 0.4 * emg_trend_u[i][j])
+    #             m.Equation(x[i][j + 1] >= x[i][j] + 0.4 * emg_trend_d[i][j])
+    #     m.Equation(sum(f * arm[:, j]) == t)
+    #     # m.Equation(sum(f * arm[:, j]) == torque[j])
+    #     m.solve(disp=False)
+    #
+    #     tt = 1
+    #     xx = np.ones_like(x)
+    #     tt = tt * t.value[0]
+    #     for i in range(x.shape[0]):
+    #         xx[i] = xx[i] * x[i].value[0]
+    #     act.append(xx)
+    #     tor.append(tt)
+    # act = np.asarray(act)
+    # tor = np.asarray(tor)
+
+    # plt.figure(figsize=(6, 7.7))
+    # plt.subplot(411)
+    # plt.plot(time, tor, label='optimization', linewidth=2)
+    # plt.plot(time, torque, label='measured', linewidth=2)
+    # plt.ylabel('torque', weight='bold', size=10)
+    # plt.legend()
+    # rmse = np.sqrt(np.sum((tor - torque) ** 2) / len(torque))
+    # print("torque rmse", num, ":\t", "{:.2f}".format(rmse))
+    #
+    # plt.subplot(412)
+    # if test_plot_distribution is True:
+    #     if mvc_is_variable is True:
+    #         plt.errorbar(time_long, emg_mean_long[0, :] * c[0], 2 * emg_std_long[0, :] * c[0], label='emg',
+    #                      color='lavender', zorder=1)
+    #     else:
+    #         plt.errorbar(time_long, emg_mean_long[0, :], 2 * emg_std_long[0, :], label='emg', color='lavender',
+    #                      zorder=1)
+    # else:
+    #     plt.plot(time, np.asarray(emg[0]), label='emg', linewidth=2, zorder=3)
+    # plt.plot(time, np.asarray(act[:, 0]), label='optimization', linewidth=2, zorder=2)
+    # plt.ylabel('bic_s_l', weight='bold')
+    # plt.legend()
+    #
+    # plt.subplot(413)
+    # if test_plot_distribution is True:
+    #     if mvc_is_variable is True:
+    #         plt.errorbar(time_long, emg_mean_long[1, :] * c[1], 2 * emg_std_long[1, :] * c[1], label='emg',
+    #                      color='lavender', zorder=1)
+    #     else:
+    #         plt.errorbar(time_long, emg_mean_long[1, :], 2 * emg_std_long[1, :], label='emg', color='lavender',
+    #                      zorder=1)
+    # else:
+    #     plt.plot(time, np.asarray(emg[1]), label='emg', linewidth=2, zorder=3)
+    # plt.plot(time, np.asarray(act[:, 1]), label='optimization', linewidth=2, zorder=2)
+    # # plt.xlabel('time (s)')
+    # plt.ylabel('brachialis_1_l', weight='bold')
+    # plt.legend()
+    #
+    # # plt.figure()
+    # plt.subplot(414)
+    # if test_plot_distribution is True:
+    #     if mvc_is_variable is True:
+    #         plt.errorbar(time_long, emg_mean_long[2, :] * c[2], 2 * emg_std_long[2, :] * c[2], label='emg',
+    #                      color='lavender', zorder=1)
+    #     else:
+    #         plt.errorbar(time_long, emg_mean_long[2, :], 2 * emg_std_long[2, :], label='emg', color='lavender',
+    #                      zorder=1)
+    # else:
+    #     plt.plot(time, np.asarray(emg[2]), label='emg', linewidth=2, zorder=3)
+    # plt.plot(time, np.asarray(act[:, 2]), label='optimization', linewidth=2, zorder=2)
+    # plt.xlabel('time (s)', weight='bold', size=10)
+    # plt.ylabel('brachiorad_1_l', weight='bold')
+    # plt.legend()
+
+    plt.figure(figsize=(6, 7.7))
+    plt.subplot(411)
+    plt.plot(time, tor, label='optimization', linewidth=2)
+    plt.plot(time, torque, label='measured', linewidth=2)
+    plt.ylabel('torque', weight='bold', size=10)
+    plt.legend()
+    rmse = np.sqrt(np.sum((tor - torque) ** 2) / len(torque))
+    print("torque rmse", ":\t", "{:.2f}".format(rmse))
+
+    plt.subplot(412)
+    plt.errorbar(time_long, emg_mean_long[0, :], 2 * emg_std_long[0, :], label='emg', color='lavender', zorder=1)
+    plt.plot(time, np.asarray(act[0, :]), label='optimization', linewidth=2, zorder=2)
+    plt.plot(time, np.asarray(emg[0, :]), label='emg', linewidth=2, zorder=3)
+    plt.ylabel('bic_s_l', weight='bold')
+    rmse = np.sqrt(np.sum((act[0, :] - emg[0, :]) ** 2) / len(emg[0, :]))
+    print("torque rmse", num, ":\t", "{:.2f}".format(rmse))
+    plt.legend()
+
+    plt.subplot(413)
+    plt.errorbar(time_long, emg_mean_long[1, :], 2 * emg_std_long[1, :], label='emg', color='lavender', zorder=1)
+    plt.plot(time, np.asarray(act[1, :]), label='optimization', linewidth=2, zorder=2)
+    plt.plot(time, np.asarray(emg[1, :]), label='emg', linewidth=2, zorder=3)
+    # plt.xlabel('time (s)')
+    plt.ylabel('brachialis_1_l', weight='bold')
+    rmse = np.sqrt(np.sum((act[1, :] - emg[1, :]) ** 2) / len(emg[1, :]))
+    print("torque rmse", num, ":\t", "{:.2f}".format(rmse))
+    plt.legend()
+
+    plt.subplot(414)
+    plt.errorbar(time_long, emg_mean_long[2, :], 2 * emg_std_long[2, :], label='emg', color='lavender', zorder=1)
+    plt.plot(time, np.asarray(act[2, :]), label='optimization', linewidth=2, zorder=2)
+    plt.plot(time, np.asarray(emg[2, :]), label='emg', linewidth=2, zorder=3)
+    plt.xlabel('time (s)', weight='bold', size=10)
+    plt.ylabel('brachiorad_1_l', weight='bold')
+    rmse = np.sqrt(np.sum((act[2, :] - emg[2, :]) ** 2) / len(emg[2, :]))
+    print("torque rmse", num, ":\t", "{:.2f}".format(rmse))
+    plt.legend()
+    plt.savefig('{}_test.png'.format(num))
+
+
+def read_groups_files(label='zhuo-right-3kg'):
+    if label == 'zhuo-right-3kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='zhuo-right-3kg', idx='2')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='zhuo-right-3kg', idx='3')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='zhuo-right-3kg', idx='5')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='zhuo-right-3kg', idx='6')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='zhuo-right-3kg', idx='8')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'zhuo-left-1kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='zhuo-left-1kg', idx='3')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='zhuo-left-1kg', idx='4')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='zhuo-left-1kg', idx='6')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='zhuo-left-1kg', idx='7')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='zhuo-left-1kg', idx='9')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'chenzui-left-5.5kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='chenzui-left-5.5kg', idx='2')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='chenzui-left-5.5kg', idx='3')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='chenzui-left-5.5kg', idx='4')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='chenzui-left-5.5kg', idx='5')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='chenzui-left-5.5kg', idx='6')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'chenzui-left-3kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='chenzui-left-3kg', idx='13')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='chenzui-left-3kg', idx='14')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='chenzui-left-3kg', idx='15')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='chenzui-left-3kg', idx='17')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='chenzui-left-3kg', idx='18')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'chenzui-left-all-2.5kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='5')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='6')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='7')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='8')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='9')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'chenzui-left-all-3kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='chenzui-left-all-3kg', idx='10')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='chenzui-left-all-3kg', idx='11')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='chenzui-left-all-3kg', idx='12')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='chenzui-left-all-3kg', idx='13')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='chenzui-left-all-3kg', idx='14')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'chenzui-left-all-4kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='chenzui-left-all-4kg', idx='15')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='chenzui-left-all-4kg', idx='16')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='chenzui-left-all-4kg', idx='17')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3), axis=0)
+        time = np.concatenate((time1, time2, time3), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'chenzui-left-all-6.5kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='18')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='19')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='20')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='21')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='22')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+
+    # emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
+    #     = read_realted_files(label='zhuo-4')
+    # emg_mean2, emg_std2, arm2, fa2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2 \
+    #     = read_realted_files(label='zhuo-6')
+    # emg_mean3, emg_std3, arm3, fa3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3 \
+    #     = read_realted_files(label='zhuo-7')
+    # emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
+    #     = read_chenzui_realted_files(label='11')
+    # emg_mean2, emg_std2, arm2, fa2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2 \
+    #     = read_chenzui_realted_files(label='13')
+    # emg_mean3, emg_std3, arm3, fa3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3 \
+    #     = read_chenzui_realted_files(label='14')
+
+    # emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
+    #     = read_chenzui_realted_files(label='5.5kg-3')
+    # emg_mean2, emg_std2, arm2, fa2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2 \
     #     = read_chenzui_realted_files(label='5.5kg-4')
+    # emg_mean3, emg_std3, arm3, fa3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3 \
+    #     = read_chenzui_realted_files(label='5.5kg-5')
 
     # emg_mean1, emg_std1, arm1, fa1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1 \
     #     = read_chenzui_realted_files(label='11')
@@ -1657,11 +3081,11 @@ def read_chenzui_groups_files():
     #     = read_chenzui_realted_files(label='5.5kg-3')
     # emg_mean6, emg_std6, arm6, fa6, torque6, time6, emg_mean_long6, emg_std_long6, emg6, time_emg6 \
     #     = read_chenzui_realted_files(label='5.5kg-4')
-
+    #
     # emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5, emg_mean6), axis=1)
     # emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5, emg_std6), axis=1)
     # arm = np.concatenate((arm1, arm2, arm3, arm4, arm5, arm6), axis=1)
-    # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+    # # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
     # torque = np.concatenate((torque1, torque2, torque3, torque4, torque5, torque6), axis=0)
     # time = np.concatenate((time1, time2, time3, time4, time5, time6), axis=0)
     # emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4,
@@ -1671,38 +3095,44 @@ def read_chenzui_groups_files():
     # emg = np.concatenate((emg1, emg2, emg3, emg4, emg5, emg6), axis=1)
     # time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5, time_emg6), axis=0)
 
-    emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3), axis=1)
-    emg_std = np.concatenate((emg_std1, emg_std2, emg_std3), axis=1)
-    arm = np.concatenate((arm1, arm2, arm3), axis=1)
-    fa = np.concatenate((fa1, fa2, fa3), axis=1)
-    torque = np.concatenate((torque1, torque2, torque3), axis=0)
-    time = np.concatenate((time1, time2, time3), axis=0)
-    emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3), axis=1)
-    emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3), axis=1)
-    emg = np.concatenate((emg1, emg2, emg3), axis=1)
-    time_emg = np.concatenate((time_emg1, time_emg2, time_emg3), axis=0)
+    # emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3), axis=1)
+    # emg_std = np.concatenate((emg_std1, emg_std2, emg_std3), axis=1)
+    # arm = np.concatenate((arm1, arm2, arm3), axis=1)
+    # fa = np.concatenate((fa1, fa2, fa3), axis=1)
+    # torque = np.concatenate((torque1, torque2, torque3), axis=0)
+    # time = np.concatenate((time1, time2, time3), axis=0)
+    # emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3), axis=1)
+    # emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3), axis=1)
+    # emg = np.concatenate((emg1, emg2, emg3), axis=1)
+    # time_emg = np.concatenate((time_emg1, time_emg2, time_emg3), axis=0)
 
-    return emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg
+    # return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    # return emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg
 
 
 if __name__ == '__main__':
     # calculate_emg_distribution()
-    # calculate_chenzui_emg_distribution(label='3kg')
+    calculate_chenzui_emg_distribution(label='2.5kg-all')
+    # calculate_lizhuo_emg_distribution(label='1kg')
     # calculate_torque()
     # print(calc_fal(0.1, 'bic_s_l'))
-    # emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_realted_files()
-    # emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_chenzui_realted_files(
-    #     label='14')
-    emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_chenzui_groups_files()
-    # plt.plot(fa[0, :])
-    # plt.show()
+    # emg_mean, emg_std, arm, fa, torque, time, emg_mean_long, emg_std_long, emg, time_emg = read_realted_files(
+    #     label='zhuo-7')
+    # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d\
+    #     = read_realted_files(label='zhuo-right-3kg', idx='2')
+    # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
+    #     = read_realted_files(label='chenzui-left-3kg', idx='13')
+    emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
+        = read_groups_files('chenzui-left-all-6.5kg')
     iso = np.asarray(iso)
-    fa = np.asarray(fa)
+    # fa = np.asarray(fa)
     arm = np.asarray(arm)
     time = np.asarray(time)
     torque = np.asarray(torque)
     emg_std = np.asarray(emg_std)
     emg_mean = np.asarray(emg_mean)
+    emg_trend_u = np.asarray(emg_trend_u)
+    emg_trend_d = np.asarray(emg_trend_d)
     emg = np.asarray(emg)
     time_emg = np.asarray(time_emg)
 
@@ -1741,16 +3171,22 @@ if __name__ == '__main__':
                 m.Equation((emg_mean[i][j] * c[i] + emg_std[i][j] * c[i] * 2) <= 1)
                 # m.Equation((emg_mean[i][j] * c[i] - emg_std[i][j] * c[i] * 2) >= 0)
             else:
-                m.Equation(x[i][j] <= emg[i][j] * 1.10)
-                m.Equation(x[i][j] >= emg[i][j] * 0.90)
-                m.Equation(x[i][j] <= (emg_mean[i][j] + emg_std[i][j] * 3))
-                m.Equation(x[i][j] >= (emg_mean[i][j] - emg_std[i][j] * 3))
+                # if j < arm.shape[1] - 1:
+                #     # m.Equation(x[i][j + 1] <= x[i][j] * emg_trend_u[i][j])
+                #     # m.Equation(x[i][j + 1] >= x[i][j] * emg_trend_d[i][j])
+                #     m.Equation(x[i][j + 1] <= x[i][j] + 0.4 * emg_trend_u[i][j])
+                #     m.Equation(x[i][j + 1] >= x[i][j] + 0.4 * emg_trend_d[i][j])
+                m.Equation(x[i][j] <= emg[i][j] * 1.20)
+                m.Equation(x[i][j] >= emg[i][j] * 0.80)
+                # m.Equation(x[i][j] <= (emg_mean[i][j] + emg_std[i][j] * 2))
+                # m.Equation(x[i][j] >= (emg_mean[i][j] - emg_std[i][j] * 2))
+        # m.Equations([y[i] >= 3 * iso1[i], y[i] <= 3 * iso2[i]])
         # m.Equations([y[i] >= iso1[i], y[i] <= iso2[i]])
-        m.Equations([y[i] >= 0.5 * iso[i], y[i] <= 10 * iso[i]])
+        m.Equations([y[i] >= 0.5 * iso[i], y[i] <= 50 * iso[i]])
         # m.Equations([y[i] >= 0.5 * iso[i], y[i] <= 3 * iso[i]])
         if mvc_is_variable is True:
             m.Equations([c[i] >= 0.01, c[i] <= 5])
-    # m.options.MAX_ITER = 100000
+    # m.options.MAX_ITER = 10000
     m.solve(disp=False)
     # print(x)
     # print(y)
@@ -1771,7 +3207,7 @@ if __name__ == '__main__':
     t = e
 
     c_r = [(np.asarray(c)[i].value[0]) for i in range(c.size)]
-    y_r = [(np.asarray(y)[i].value[0]) for i in range(y.size)]
+    y_r = [(np.asarray(y)[i].value[0]) for i in range(y.size)]  # maximum isometric force
     if mvc_is_variable is True:
         active_force = emg.T * c_r * y_r
     else:
@@ -1782,14 +3218,38 @@ if __name__ == '__main__':
     print('-' * 50)
     rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
     print("torque rmse:\t", "{:.2f}".format(rmse))
-    plot_result(0, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque)
-    plot_result(1, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque)
-    plot_result(2, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque)
-    # plot_result(3, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque)
-    # plot_result(4, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque)
-    # plot_result(5, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque)
-
-    test_result(c_r, y_r)
+    plot_result(0, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+    plot_result(1, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+    plot_result(2, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+    plot_result(3, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+    plot_result(4, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+    # plot_result(5, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+    #
+    # test_result(c_r, y_r)
+    #
+    # print('-' * 50)
+    # y_r = np.array([436.65, 157.00, 15])
+    # y_r = np.array([134.57, 846.82, 150.00])
+    # y_r = np.array([8126.39, 15700.00, 485.59])
+    # y_r = np.array([1484.95, 242.86, 445.27])
+    # emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, emg_trend_u1, emg_trend_d1 \
+    #     = read_realted_files(label='zhuo-left-1kg', idx='3')
+    # emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, emg_trend_u2, emg_trend_d2 \
+    #     = read_realted_files(label='zhuo-left-1kg', idx='4')
+    # emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, emg_trend_u3, emg_trend_d3 \
+    #     = read_realted_files(label='zhuo-left-1kg', idx='6')
+    # emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, emg_trend_u4, emg_trend_d4 \
+    #     = read_realted_files(label='zhuo-left-1kg', idx='7')
+    # emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, emg_trend_u5, emg_trend_d5 \
+    #     = read_realted_files(label='zhuo-left-1kg', idx='9')
+    # # emg_mean6, emg_std6, arm6, fa6, torque6, time6, emg_mean_long6, emg_std_long6, emg6, time_emg6 \
+    # #     = read_chenzui_realted_files(label='zhuo-9')
+    # test_optimization_emg(0, y_r, torque1, time1, emg_mean_long1, emg_std_long1, arm1, emg1, emg_mean1, emg_std1, emg_trend_u1, emg_trend_d1)
+    # test_optimization_emg(1, y_r, torque2, time2, emg_mean_long2, emg_std_long2, arm2, emg2, emg_mean2, emg_std2, emg_trend_u2, emg_trend_d2)
+    # test_optimization_emg(2, y_r, torque3, time3, emg_mean_long3, emg_std_long3, arm3, emg3, emg_mean3, emg_std3, emg_trend_u3, emg_trend_d3)
+    # test_optimization_emg(3, y_r, torque4, time4, emg_mean_long4, emg_std_long4, arm4, emg4, emg_mean4, emg_std4, emg_trend_u4, emg_trend_d4)
+    # test_optimization_emg(4, y_r, torque5, time5, emg_mean_long5, emg_std_long5, arm5, emg5, emg_mean5, emg_std5, emg_trend_u5, emg_trend_d5)
+    # # test_optimization_emg(5, y_r, torque6, time6, emg_mean_long6, emg_std_long6, arm6, emg6, emg_mean6, emg_std6, emg_trend_u6, emg_trend_d6)
 
     # plt.figure(figsize=(6, 7.7))
     # plt.subplot(311)
