@@ -11,6 +11,7 @@ iso2 = [6000, 6000, 3000]
 
 emg_lift_len = 1000
 target_len = 20
+fs = 2000
 only_lift = False
 include_TRI = False
 torque_init_0 = False

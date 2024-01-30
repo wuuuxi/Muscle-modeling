@@ -86,9 +86,20 @@ def emg_rectification(x, Fs=1000, code=None, people=None):
     #     ref = 42.5301
     # else:
     #     ref = max(EMGLE)
+    # if people == 'chenzui':
+    #     if code == 'BIC':
+    #         ref = 407.11
+    #     elif code == 'BRA':
+    #         ref = 250.37
+    #     elif code == 'BRD':
+    #         ref = 468.31
+    #     elif code == 'TRI':
+    #         ref = 467.59
+    #     else:
+    #         ref = max(EMGLE)
     if people == 'chenzui':
         if code == 'BIC':
-            ref = 407.11
+            ref = 703.47
         elif code == 'BRA':
             ref = 250.37
         elif code == 'BRD':

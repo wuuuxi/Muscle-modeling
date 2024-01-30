@@ -16,6 +16,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
     TL = 'modelModified_MuscleAnalysis_TendonLength-'
     MA = 'modelModified_MuscleAnalysis_MomentArm_elbow_flex_l-'
     if label == 'chenzui-left-3kg':
+        people = 'chenzui'
         assert idx in ['11', '13', '14', '15', '17', '18', '19']
         file_folder = 'files/chenzui-3kg-1/'
         emg = np.load(file_folder + 'emg-' + idx + '.npy')
@@ -24,6 +25,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         # length = pd.read_excel(file_folder + LE + idx + '.xlsx')
         # tenlen = pd.read_excel(file_folder + TL + idx + '.xlsx')
     elif label == 'chenzui-left-5.5kg':
+        people = 'chenzui'
         file_folder = 'files/chenzui-5.5kg-1/'
         if idx == '2':
             emg = np.load(file_folder + '2.npy')
@@ -64,6 +66,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         else:
             print('No such index!')
     elif label == 'zhuo-left-1kg':
+        people = 'zhuo'
         file_folder = 'files/lizhuo-1kg/'
         if idx == '2':
             emg = np.load(file_folder + '2.npy')
@@ -104,6 +107,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         else:
             print('No such index!')
     elif label == 'zhuo-right-3kg':
+        people = 'zhuo'
         file_folder = 'files/lizhuo-3kg/'
         if idx == '1':
             emg = np.load(file_folder + '1.npy')
@@ -172,6 +176,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
             tenlen = pd.read_excel(file_folder + 'Subject-test-scaled_MuscleAnalysis_TendonLength-12.xlsx')
             momarm = pd.read_excel(file_folder + 'Subject-test-scaled_MuscleAnalysis_MomentArm_elbow_flex_r-12.xlsx')
     elif label == 'chenzui-left-all-2.5kg':
+        people = 'chenzui'
         assert idx in ['5', '6', '7', '8', '9']
         file_folder = 'files/chenzui-all/'
         emg = np.load(file_folder + '2.5-' + idx + '.npy')
@@ -180,6 +185,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         # length = pd.read_excel(file_folder + LE + idx + '.xlsx')
         # tenlen = pd.read_excel(file_folder + TL + idx + '.xlsx')
     elif label == 'chenzui-left-all-3kg':
+        people = 'chenzui'
         assert idx in ['10', '11', '12', '13', '14']
         file_folder = 'files/chenzui-all/'
         emg = np.load(file_folder + '3-' + idx + '.npy')
@@ -188,6 +194,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         # length = pd.read_excel(file_folder + LE + idx + '.xlsx')
         # tenlen = pd.read_excel(file_folder + TL + idx + '.xlsx')
     elif label == 'chenzui-left-all-4kg':
+        people = 'chenzui'
         assert idx in ['15', '16', '17']
         file_folder = 'files/chenzui-all/'
         emg = np.load(file_folder + '4-' + idx + '.npy')
@@ -196,6 +203,7 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         # length = pd.read_excel(file_folder + LE + idx + '.xlsx')
         # tenlen = pd.read_excel(file_folder + TL + idx + '.xlsx')
     elif label == 'chenzui-left-all-6.5kg':
+        people = 'chenzui'
         assert idx in ['18', '19', '20', '21', '22']
         file_folder = 'files/chenzui-all/'
         emg = np.load(file_folder + '6.5-' + idx + '.npy')
@@ -203,8 +211,65 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         momarm = pd.read_excel(file_folder + MA + idx + '.xlsx')
         # length = pd.read_excel(file_folder + LE + idx + '.xlsx')
         # tenlen = pd.read_excel(file_folder + TL + idx + '.xlsx')
+        emg_mean = np.load('emg/chenzui_mean_6.5kg.npy')
+        emg_std = np.load('emg/chenzui_std_6.5kg.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_6.5kg.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_6.5kg.npy')
+    # elif label == 'chenzui-left-all-6.5kg-cts':
+    #     people = 'chenzui'
+    #     assert idx in ['23-1', '23-2', '23-3', '23-4', '23-5']
+    #     file_folder = 'files/chenzui-all/'
+    #     emg = np.load(file_folder + '6.5' + '.npy')
+    #     moment = pd.read_excel(file_folder + ID + '23' + '.xlsx')
+    #     momarm = pd.read_excel(file_folder + MA + '23' + '.xlsx')
+    #     # length = pd.read_excel(file_folder + LE + '23' + '.xlsx')
+    #     # tenlen = pd.read_excel(file_folder + TL + '23' + '.xlsx')
+    #     emg_mean = np.load('emg/chenzui_mean_6.5kg_cts.npy')
+    #     emg_std = np.load('emg/chenzui_std_6.5kg_cts.npy')
+    #     emg_trend_u = np.load('emg/chenzui_trend_u_6.5kg_cts.npy')
+    #     emg_trend_d = np.load('emg/chenzui_trend_d_6.5kg_cts.npy')
+    elif label == 'chenzui-left-all-4kg-cts':
+        people = 'chenzui'
+        assert idx in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16']
+        file_folder = 'files/chenzui-cts/'
+        emg = np.load(file_folder + '5-4' + '.npy')
+        moment = pd.read_excel(file_folder + ID + '5' + '.xlsx')
+        momarm = pd.read_excel(file_folder + MA + '5' + '.xlsx')
+        # length = pd.read_excel(file_folder + LE + '5' + '.xlsx')
+        # tenlen = pd.read_excel(file_folder + TL + '5' + '.xlsx')
+        emg_mean = np.load('emg/chenzui_mean_4kg_cts.npy')
+        emg_std = np.load('emg/chenzui_std_4kg_cts.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_4kg_cts.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_4kg_cts.npy')
+    elif label == 'chenzui-left-all-5.5kg-cts':
+        people = 'chenzui'
+        assert idx in ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        file_folder = 'files/chenzui-cts/'
+        emg = np.load(file_folder + '4-5.5' + '.npy')
+        moment = pd.read_excel(file_folder + ID + '4' + '.xlsx')
+        momarm = pd.read_excel(file_folder + MA + '4' + '.xlsx')
+        # length = pd.read_excel(file_folder + LE + '5' + '.xlsx')
+        # tenlen = pd.read_excel(file_folder + TL + '5' + '.xlsx')
+        emg_mean = np.load('emg/chenzui_mean_5.5kg_cts.npy')
+        emg_std = np.load('emg/chenzui_std_5.5kg_cts.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_5.5kg_cts.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_5.5kg_cts.npy')
+    elif label == 'chenzui-left-all-6.5kg-cts':
+        people = 'chenzui'
+        assert idx in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        file_folder = 'files/chenzui-cts/'
+        emg = np.load(file_folder + '2-6.5' + '.npy')
+        moment = pd.read_excel(file_folder + ID + '2' + '.xlsx')
+        momarm = pd.read_excel(file_folder + MA + '2' + '.xlsx')
+        # length = pd.read_excel(file_folder + LE + '5' + '.xlsx')
+        # tenlen = pd.read_excel(file_folder + TL + '5' + '.xlsx')
+        emg_mean = np.load('emg/chenzui_mean_6.5kg_cts.npy')
+        emg_std = np.load('emg/chenzui_std_6.5kg_cts.npy')
+        emg_trend_u = np.load('emg/chenzui_trend_u_6.5kg_cts.npy')
+        emg_trend_d = np.load('emg/chenzui_trend_d_6.5kg_cts.npy')
     else:
         print('No corresponding label!')
+        return 0
 
     if label == 'chenzui-left-3kg':
         emg_mean = np.load('emg/chenzui_mean_3kg.npy')
@@ -241,11 +306,6 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         emg_std = np.load('emg/chenzui_std_4kg.npy')
         emg_trend_u = np.load('emg/chenzui_trend_u_4kg.npy')
         emg_trend_d = np.load('emg/chenzui_trend_d_4kg.npy')
-    elif label == 'chenzui-left-all-6.5kg':
-        emg_mean = np.load('emg/chenzui_mean_6.5kg.npy')
-        emg_std = np.load('emg/chenzui_std_6.5kg.npy')
-        emg_trend_u = np.load('emg/chenzui_trend_u_6.5kg.npy')
-        emg_trend_d = np.load('emg/chenzui_trend_d_6.5kg.npy')
     # elif label == 'chenzui-left-all-2.5kg' or label == 'chenzui-left-all-3kg' or label == 'chenzui-left-all-4kg' or label == 'chenzui-left-all-6.5kg':
     #     emg_mean = np.load('emg/chenzui_mean_all.npy')
     #     emg_std = np.load('emg/chenzui_std_all.npy')
@@ -361,6 +421,91 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
             timestep_emg = [11.9, 24.599, 24.599, 37.465]
         elif idx == '22':
             timestep_emg = [19.466, 30.415, 31.749, 45.781]
+    # elif label == 'chenzui-left-all-6.5kg-cts':
+    #     if idx == '23-1':
+    #         timestep_emg = [18.016, 28.232, 28.232, 38.849]
+    #     elif idx == '23-2':
+    #         timestep_emg = [47.148, 59.531, 59.531, 70.264]
+    #     elif idx == '23-3':
+    #         timestep_emg = [78.747, 92.862, 92.862, 104.112]
+    #     elif idx == '23-4':
+    #         timestep_emg = [112.511, 123.794, 123.794, 133.594]
+    #     elif idx == '23-5':
+    #         timestep_emg = [141.76, 153.243, 153.243, 162.176]
+    elif label == 'chenzui-left-all-4kg-cts':
+        if idx == '1':
+            timestep_emg = [94.278,  101.394,    102.828,    110.361]
+        elif idx == '2':
+            timestep_emg = [111.81,  119.16,     120.043,    128.026]
+        elif idx == '3':
+            timestep_emg = [129.809, 136.259,    137.209,    144.775]
+        elif idx == '4':
+            timestep_emg = [146.592, 153.675,    154.458,    161.574]
+        elif idx == '5':
+            timestep_emg = [163.774, 170.157,    171.207,    178.307]
+        elif idx == '6':
+            timestep_emg = [181.373, 187.506, 188.44, 194.589]
+        elif idx == '7':
+            timestep_emg = [197.923, 203.989, 204.689, 210.789]
+        elif idx == '8':
+            timestep_emg = [213.938, 219.421, 220.321, 225.204]
+        elif idx == '9':
+            timestep_emg = [229.888, 235.954, 236.854, 243.054]
+        elif idx == '10':
+            timestep_emg = [246.603, 252.453, 253.42, 259.369]
+        elif idx == '11':
+            timestep_emg = [263.802, 270.019, 270.835, 276.568]
+        elif idx == '12':
+            timestep_emg = [280.901, 286.851, 287.751, 293.584]
+        elif idx == '13':
+            timestep_emg = [298.084, 304.317, 305.25, 310.983]
+        elif idx == '14':
+            timestep_emg = [315.883, 322.199, 322.999, 328.382]
+        elif idx == '15':
+            timestep_emg = [331.932, 337.632, 338.582, 343.548]
+        elif idx == '16':
+            timestep_emg = [348.481, 353.631, 354.631, 359.481]
+    elif label == 'chenzui-left-all-5.5kg-cts':
+        if idx == '1':
+            timestep_emg = [15.015, 23.482, 23.881, 32.714]
+        elif idx == '2':
+            timestep_emg = [34.464, 44.23, 44.464, 53.663]
+        elif idx == '3':
+            timestep_emg = [56.463, 65.763, 66.696, 75.962]
+        elif idx == '4':
+            timestep_emg = [78.612, 86.495, 86.962, 94.645]
+        elif idx == '5':
+            timestep_emg = [99.078, 106.594, 107.344, 114.027]
+        elif idx == '6':
+            timestep_emg = [118.827, 125.426, 125.76, 131.693]
+        elif idx == '7':
+            timestep_emg = [137.409, 144.575, 144.642, 150.908]
+        elif idx == '8':
+            timestep_emg = [155.875, 161.241, 161.491, 166.324]
+        elif idx == '9':
+            timestep_emg = [171.507, 175.94, 176.357, 181.09]
+    elif label == 'chenzui-left-all-6.5kg-cts':
+        if idx == '1':
+            timestep_emg = [14.966, 21.699, 25.899, 35.565]
+        elif idx == '2':
+            timestep_emg = [36.365, 43.598, 47.098, 56.881]
+        elif idx == '3':
+            timestep_emg = [57.98, 64.464, 68.996, 77.879]
+        elif idx == '4':
+            timestep_emg = [79.33, 85.529, 89.429, 97.562]
+        elif idx == '5':
+            timestep_emg = [99.412, 106.145, 109.745, 119.378]
+        elif idx == '6':
+            timestep_emg = [122.227, 127.644, 132.444, 139.76]
+        elif idx == '7':
+            timestep_emg = [143.56, 148.509, 152.726, 159.975]
+        elif idx == '8':
+            timestep_emg = [164.809, 171.175, 173.458, 180.291]
+        elif idx == '9':
+            timestep_emg = [184.341, 190.107, 191.307, 197.44]
+        elif idx == '10':
+            timestep_emg = [201.807, 206.856, 207.889, 213.623]
+
 
     t_tor = []
     t_arm = []
@@ -434,18 +579,24 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
         t_arm_out.append(t_arm[0])
         tor_out.append(tor[0])
 
-    if label == 'chenzui-left-3kg' or label == 'chenzui-left-5.5kg' or label == 'chenzui-left-all-2.5kg' or label == 'chenzui-left-all-3kg' or label == 'chenzui-left-all-4kg' or label == 'chenzui-left-all-6.5kg':
-        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', 'chenzui')
-        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', 'chenzui')
-        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', 'chenzui')
-        if include_TRI is True:
-            [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', 'chenzui')
-    elif label == 'zhuo-left-1kg' or label == 'zhuo-right-3kg':
-        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', 'zhuo')
-        [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', 'zhuo')
-        [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', 'zhuo')
-        if include_TRI is True:
-            [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', 'zhuo')
+    [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', people)
+    [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', people)
+    [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', people)
+    if include_TRI is True:
+        [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', people)
+
+    # if label == 'chenzui-left-3kg' or label == 'chenzui-left-5.5kg' or label == 'chenzui-left-all-2.5kg' or label == 'chenzui-left-all-3kg' or label == 'chenzui-left-all-4kg' or label == 'chenzui-left-all-6.5kg':
+    #     [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', 'chenzui')
+    #     [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', 'chenzui')
+    #     [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', 'chenzui')
+    #     if include_TRI is True:
+    #         [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', 'chenzui')
+    # elif label == 'zhuo-left-1kg' or label == 'zhuo-right-3kg':
+    #     [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', 'zhuo')
+    #     [emg_BRA, t2] = emg_rectification(emg[:, 2], fs, 'BRA', 'zhuo')
+    #     [emg_BRD, t3] = emg_rectification(emg[:, 3], fs, 'BRD', 'zhuo')
+    #     if include_TRI is True:
+    #         [emg_TRI, t4] = emg_rectification(emg[:, 4], fs, 'TRI', 'zhuo')
 
     # [emg_TRIlat, t5] = emg_rectification(emg['TRIlateral'], fs, 'TRIlat')
     if label == 'chenzui-left-3kg':
@@ -554,6 +705,14 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
             t1 = t1 - 3.8335 + 6.65
         elif idx == '14':
             t1 = t1 - 13.803 + 15.4
+    # elif label == 'chenzui-left-all-6.5kg-cts':
+    #     t1 = t1 - 5.6085 + 12.617
+    elif label == 'chenzui-left-all-4kg-cts':
+        t1 = t1 - 83.755 + 90.078
+    elif label == 'chenzui-left-all-5.5kg-cts':
+        t1 = t1 - 3.6855 + 10.216
+    elif label == 'chenzui-left-all-6.5kg-cts':
+        t1 = t1 - 4.2 + 10.717
 
     # plt.figure(figsize=(6, 7.7))
     # plt.subplot(311)
@@ -693,15 +852,15 @@ def read_realted_files(label='chenzui-left-3kg', idx='1'):
 def read_groups_files(label='zhuo-right-3kg'):
     if label == 'zhuo-right-3kg':
         emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
-            = read_realted_files(label='zhuo-right-3kg', idx='2')
+            = read_realted_files(label, idx='2')
         emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
-            = read_realted_files(label='zhuo-right-3kg', idx='3')
+            = read_realted_files(label, idx='3')
         emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
-            = read_realted_files(label='zhuo-right-3kg', idx='5')
+            = read_realted_files(label, idx='5')
         emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
-            = read_realted_files(label='zhuo-right-3kg', idx='6')
+            = read_realted_files(label, idx='6')
         emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
-            = read_realted_files(label='zhuo-right-3kg', idx='8')
+            = read_realted_files(label, idx='8')
 
         emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
         emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
@@ -718,15 +877,15 @@ def read_groups_files(label='zhuo-right-3kg'):
         return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
     elif label == 'zhuo-left-1kg':
         emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
-            = read_realted_files(label='zhuo-left-1kg', idx='3')
+            = read_realted_files(label, idx='3')
         emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
-            = read_realted_files(label='zhuo-left-1kg', idx='4')
+            = read_realted_files(label, idx='4')
         emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
-            = read_realted_files(label='zhuo-left-1kg', idx='6')
+            = read_realted_files(label, idx='6')
         emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
-            = read_realted_files(label='zhuo-left-1kg', idx='7')
+            = read_realted_files(label, idx='7')
         emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
-            = read_realted_files(label='zhuo-left-1kg', idx='9')
+            = read_realted_files(label, idx='9')
 
         emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5), axis=1)
         emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5), axis=1)
@@ -886,6 +1045,33 @@ def read_groups_files(label='zhuo-right-3kg'):
         time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5), axis=0)
         trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5), axis=0)
         trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5), axis=0)
+        return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
+    elif label == 'chenzui-left-2.5kg_and_6.5kg':
+        emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, trend_u1, trend_d1 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='5')
+        emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, trend_u2, trend_d2 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='6')
+        emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, trend_u3, trend_d3 \
+            = read_realted_files(label='chenzui-left-all-2.5kg', idx='7')
+        emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, trend_u4, trend_d4 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='20')
+        emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, trend_u5, trend_d5 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='21')
+        emg_mean6, emg_std6, arm6, torque6, time6, emg_mean_long6, emg_std_long6, emg6, time_emg6, trend_u6, trend_d6 \
+            = read_realted_files(label='chenzui-left-all-6.5kg', idx='22')
+
+        emg_mean = np.concatenate((emg_mean1, emg_mean2, emg_mean3, emg_mean4, emg_mean5, emg_mean6), axis=1)
+        emg_std = np.concatenate((emg_std1, emg_std2, emg_std3, emg_std4, emg_std5, emg_std6), axis=1)
+        arm = np.concatenate((arm1, arm2, arm3, arm4, arm5, arm6), axis=1)
+        # fa = np.concatenate((fa1, fa2, fa3, fa4, fa5, fa6), axis=1)
+        torque = np.concatenate((torque1, torque2, torque3, torque4, torque5, torque6), axis=0)
+        time = np.concatenate((time1, time2, time3, time4, time5, time6), axis=0)
+        emg_mean_long = np.concatenate((emg_mean_long1, emg_mean_long2, emg_mean_long3, emg_mean_long4, emg_mean_long5, emg_mean_long6), axis=1)
+        emg_std_long = np.concatenate((emg_std_long1, emg_std_long2, emg_std_long3, emg_std_long4, emg_std_long5, emg_std_long6), axis=1)
+        emg = np.concatenate((emg1, emg2, emg3, emg4, emg5, emg6), axis=1)
+        time_emg = np.concatenate((time_emg1, time_emg2, time_emg3, time_emg4, time_emg5, time_emg6), axis=0)
+        trend_u = np.concatenate((trend_u1, trend_u2, trend_u3, trend_u4, trend_u5, trend_u6), axis=0)
+        trend_d = np.concatenate((trend_d1, trend_d2, trend_d3, trend_d4, trend_d5, trend_d6), axis=0)
         return emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, trend_u, trend_d
 
 

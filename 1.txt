@@ -1,0 +1,14 @@
+bic_s_l :	 260.11
+brachialis_1_l :	 157.00
+brachiorad_1_l :	 2130.25
+torque rmse:	 4.91
+torque rmse 0 :	 4.91
+torque rmse:	 6.47
+
+
+bic_s_l :	 885.83
+brachialis_1_l :	 442.92
+brachiorad_1_l :	 343.50
+torque rmse:	 5.34
+torque rmse 1 :	 5.34
+torque rmse:	 7.00

@@ -217,6 +217,7 @@ def calculate_emg_distribution():
 def calculate_chenzui_emg_distribution(label='3kg'):
     unified_len = 1000
     fs = 2000
+    num = 0
     if label == '3kg':
         file_folder = 'files/chenzui-3kg/'
         files = [file_folder+'emg-11.npy',
@@ -305,6 +306,70 @@ def calculate_chenzui_emg_distribution(label='3kg'):
                         [14.633, 27.399, 27.399, 40.465],
                         [11.9, 24.599, 24.599, 37.465],
                         [19.466, 30.415, 31.749, 45.781]]  # 6.5kg
+    # elif label == '6.5kg-cts':
+    #     file_folder = 'files/chenzui-all/'
+    #     files = [file_folder+'6.5.npy',
+    #              file_folder+'6.5.npy',
+    #              file_folder+'6.5.npy',
+    #              file_folder+'6.5.npy',
+    #              file_folder+'6.5.npy']
+    #     t_delta_emg = [5.6085, 5.6085, 5.6085, 5.6085, 5.6085]
+    #     t_delta_joi = [12.617, 12.617, 12.617, 12.617, 12.617]
+    #     timestep_emg = [[18.016, 28.232, 28.232, 38.849],
+    #                     [47.148, 59.531, 59.531, 70.264],
+    #                     [78.747, 92.862, 92.862, 104.112],
+    #                     [112.511, 123.794, 123.794, 133.594],
+    #                     [141.76, 153.243, 153.243, 162.176]]  # 6.5kg
+    elif label == '4kg-cts':
+        file_folder = 'files/chenzui-cts/'
+        files = [file_folder+'5-4.npy'] * 16
+        t_delta_emg = [83.755] * 16
+        t_delta_joi = [90.078] * 16
+        timestep_emg = [[94.278,  101.394,    102.828,    110.361],
+                        [111.81,  119.16,     120.043,    128.026],
+                        [129.809, 136.259,    137.209,    144.775],
+                        [146.592, 153.675,    154.458,    161.574],
+                        [163.774, 170.157,    171.207,    178.307],
+                        [181.373, 187.506,    188.44,     194.589],
+                        [197.923, 203.989,    204.689,    210.789],
+                        [213.938, 219.421,    220.321,    225.204],
+                        [229.888, 235.954,    236.854,    243.054],
+                        [246.603, 252.453,    253.42,     259.369],
+                        [263.802, 270.019,    270.835,    276.568],
+                        [280.901, 286.851,    287.751,    293.584],
+                        [298.084, 304.317,    305.25,     310.983],
+                        [315.883, 322.199,    322.999,    328.382],
+                        [331.932, 337.632,    338.582,    343.548],
+                        [348.481, 353.631,    354.631,    359.481]]  # 4kg
+    elif label == '5.5kg-cts':
+        file_folder = 'files/chenzui-cts/'
+        files = [file_folder+'4-5.5.npy'] * 9
+        t_delta_emg = [3.6855] * 9
+        t_delta_joi = [10.216] * 9
+        timestep_emg = [[15.015, 23.482, 23.881, 32.714],
+                        [34.464, 44.23, 44.464, 53.663],
+                        [56.463, 65.763, 66.696, 75.962],
+                        [78.612, 86.495, 86.962, 94.645],
+                        [99.078, 106.594, 107.344, 114.027],
+                        [118.827, 125.426, 125.76, 131.693],
+                        [137.409, 144.575, 144.642, 150.908],
+                        [155.875, 161.241, 161.491, 166.324],
+                        [171.507, 175.94, 176.357, 181.09]]  # 5.5kg
+    elif label == '6.5kg-cts':
+        file_folder = 'files/chenzui-cts/'
+        files = [file_folder+'2-6.5.npy'] * 10
+        t_delta_emg = [4.2] * 10
+        t_delta_joi = [10.717] * 10
+        timestep_emg = [[14.966, 21.699, 25.899, 35.565],
+                        [36.365, 43.598, 47.098, 56.881],
+                        [57.98, 64.464, 68.996, 77.879],
+                        [79.33, 85.529, 89.429, 97.562],
+                        [99.412, 106.145, 109.745, 119.378],
+                        [122.227, 127.644, 132.444, 139.76],
+                        [143.56, 148.509, 152.726, 159.975],
+                        [164.809, 171.175, 173.458, 180.291],
+                        [184.341, 190.107, 191.307, 197.44],
+                        [201.807, 206.856, 207.889, 213.623]]  # 6.5kg
     elif label == 'all-1':
         file_folder = 'files/chenzui-all/'
         files = [file_folder+'2.5-5.npy',
@@ -393,7 +458,7 @@ def calculate_chenzui_emg_distribution(label='3kg'):
     t_emg_all = [([]) for _ in range(data_set_number)]
     for i in range(data_set_number):
         emg_all[i] = np.load(files[i])
-        [emg_all[i], t_emg_all[i]] = emg_file_progressing(emg_all[i], fs, 'zhuo')
+        [emg_all[i], t_emg_all[i]] = emg_file_progressing(emg_all[i], fs, 'chenzui')
         t_emg_all[i] = t_emg_all[i] - t_delta_emg[i] + t_delta_joi[i]
 
     if include_TRI is True:
@@ -482,6 +547,7 @@ def calculate_chenzui_emg_distribution(label='3kg'):
     # plt.xlabel('timestep', weight='bold')
 
     plt.figure(figsize=(6, 6.7))
+    num = num + 1
     color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
     plt.subplot(311)
     for i in range(data.shape[1]):
@@ -506,9 +572,11 @@ def calculate_chenzui_emg_distribution(label='3kg'):
     # plt.legend()
     plt.ylabel('brachiorad', weight='bold')
     plt.xlabel('timestep', weight='bold')
+    plt.savefig('emg_{}.png'.format(num))
 
     if include_TRI is False:
         plt.figure(figsize=(6, 6.7))
+        num = num + 1
         plt.subplot(311)
         plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
         plt.ylabel('biceps', weight='bold')
@@ -523,8 +591,10 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         plt.errorbar(range(data_mean.shape[1]), data_mean[2], 2 * data_std[2])
         plt.ylabel('brachiorad', weight='bold')
         plt.xlabel('timestep', weight='bold')
+        plt.savefig('emg_{}.png'.format(num))
     else:
         plt.figure(figsize=(6, 6.7))
+        num = num + 1
         plt.subplot(411)
         plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0])
         plt.ylabel('bic', weight='bold')
@@ -544,8 +614,10 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         plt.errorbar(range(data_mean.shape[1]), data_mean[3], 2 * data_std[3])
         plt.ylabel('tri', weight='bold')
         plt.xlabel('timestep', weight='bold')
+        plt.savefig('emg_{}.png'.format(num))
 
     plt.figure(figsize=(6, 6.7))
+    num = num + 1
     plt.subplot(311)
     plt.errorbar(range(data_mean.shape[1]), data_mean[0], 2 * data_std[0], color='papayawhip')
     for i in range(data.shape[1]):
@@ -565,6 +637,7 @@ def calculate_chenzui_emg_distribution(label='3kg'):
     for i in range(data.shape[1]):
         plt.plot(data[2, i, :], color=color[i % len(color)])
     plt.xlabel('timestep', weight='bold')
+    plt.savefig('emg_{}.png'.format(num))
 
     if label == '2.5kg-all':
         np.save('emg/chenzui_mean_2.5kg', data_mean)
@@ -586,6 +659,11 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         np.save('emg/chenzui_std_6.5kg', data_std)
         np.save('emg/chenzui_trend_u_6.5kg', data_trend_u)
         np.save('emg/chenzui_trend_d_6.5kg', data_trend_d)
+    elif label == '6.5kg-cts':
+        np.save('emg/chenzui_mean_6.5kg_cts', data_mean)
+        np.save('emg/chenzui_std_6.5kg_cts', data_std)
+        np.save('emg/chenzui_trend_u_6.5kg_cts', data_trend_u)
+        np.save('emg/chenzui_trend_d_6.5kg_cts', data_trend_d)
     elif label == '3kg':
         np.save('emg/chenzui_mean_3kg', data_mean)
         np.save('emg/chenzui_std_3kg', data_std)
@@ -596,6 +674,21 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         np.save('emg/chenzui_std_5.5kg', data_std)
         np.save('emg/chenzui_trend_u_5.5kg', data_trend_u)
         np.save('emg/chenzui_trend_d_5.5kg', data_trend_d)
+    elif label == '4kg-cts':
+        np.save('emg/chenzui_mean_4kg_cts', data_mean)
+        np.save('emg/chenzui_std_4kg_cts', data_std)
+        np.save('emg/chenzui_trend_u_4kg_cts', data_trend_u)
+        np.save('emg/chenzui_trend_d_4kg_cts', data_trend_d)
+    elif label == '5.5kg-cts':
+        np.save('emg/chenzui_mean_5.5kg_cts', data_mean)
+        np.save('emg/chenzui_std_5.5kg_cts', data_std)
+        np.save('emg/chenzui_trend_u_5.5kg_cts', data_trend_u)
+        np.save('emg/chenzui_trend_d_5.5kg_cts', data_trend_d)
+    elif label == '6.5kg-cts':
+        np.save('emg/chenzui_mean_6.5kg_cts', data_mean)
+        np.save('emg/chenzui_std_6.5kg_cts', data_std)
+        np.save('emg/chenzui_trend_u_6.5kg_cts', data_trend_u)
+        np.save('emg/chenzui_trend_d_6.5kg_cts', data_trend_d)
     elif label == 'all' or label == 'all-1':
         np.save('emg/chenzui_mean_all', data_mean)
         np.save('emg/chenzui_std_all', data_std)
@@ -607,7 +700,7 @@ def calculate_chenzui_emg_distribution(label='3kg'):
     # print(np.max(yt[:, 2, :, :]))
     # print(np.max(yt[:, 3, :, :]))
     # print(np.max(yt[:, 4, :, :]))
-    plt.show()
+    # plt.show()
 
 
 def calculate_lizhuo_emg_distribution(label='1kg'):
