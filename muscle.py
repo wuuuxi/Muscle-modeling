@@ -60,7 +60,7 @@ target_len = 20
 
 
 def b_spline_basis(i, p, u, nodeVector):
-    # 计算基函数，i为控制顶点序号，k为次数，u为代入的值，NodeVector为节点向量
+    # 计算基函数，i为控制顶点序号，p为次数，u为代入的值，NodeVector为节点向量
     # 该函数返回第i+1个k次基函数在u处的值
     # nodeVector = np.mat(nodeVector)  # 将输入的节点转化成能够计算的数组
     # k=0时，定义一次基函数
@@ -94,7 +94,8 @@ def draw_b_spline(n, p, nodeVector, X, Y):
     rx = np.zeros(100)
     ry = np.zeros(100)
     for i in range(n + 1):  # 计算第i个B样条基函数，
-        U = np.linspace(nodeVector[0], nodeVector[n + p + 1], 100)  # 在节点向量收尾之间取100个点，u在这些点中取值
+        # U = np.linspace(nodeVector[0], nodeVector[n + p + 1], 100)  # 在节点向量收尾之间取100个点，u在这些点中取值
+        U = np.linspace(nodeVector[0], nodeVector[-1], 100)
         j = 0
         for u in U:
             nodeVector = np.array(nodeVector)
@@ -107,7 +108,7 @@ def draw_b_spline(n, p, nodeVector, X, Y):
     # print(rx)
     # print(ry)
     plt.plot(X, Y)
-    plt.plot(rx, ry)
+    plt.plot(rx[:-1], ry[:-1])
     plt.show()
 
 
@@ -264,7 +265,117 @@ def calculate_torque():
     plt.show()
 
 
-if __name__ == '__main__':
-    calculate_torque()
-    print(calc_fal(0.1, 'bic_s_l'))
+def B_nx(n, i, x):
+    if i > n:
+        return 0
+    elif i == 0:
+        return (1-x)**n
+    elif i == 1:
+        return n*x*((1-x)**(n-1))
+    return B_nx(n-1, i, x)*(1-x)+B_nx(n-1, i-1, x)*x
+
+
+def get_value(p, canshu):
+    sumx = 0.
+    sumy = 0.
+    length = len(p)-1
+    for i in range(0, len(p)):
+        sumx += (B_nx(length, i, canshu) * p[i][0])
+        sumy += (B_nx(length, i, canshu) * p[i][1])
+    return sumx, sumy
+
+
+def get_newxy(p,x):
+    xx = [0] * len(x)
+    yy = [0] * len(x)
+    for i in range(0, len(x)):
+        # print('x[i]=', x[i])
+        a, b = get_value(p, x[i])
+        xx[i] = a
+        yy[i] = b
+        # print('xx[i]=', xx[i])
+    return xx, yy
+
+
+def N(i, k, T, t):  # 曲线N_ik
+    if k == 0:
+        if t < T[i] or t > T[i + 1]:
+            return 0
+        else:
+            return 1
+    else:
+        result = (t - T[i]) / (T[i + k] - T[i]) * N(i, k - 1, T, t) + (T[i + k + 1] - t) / (
+                    T[i + k + 1] - T[i + 1]) * N(i + 1, k - 1, T, t)
+        return result
+
+
+def main(n, V, V_num):
+    T = np.linspace(0, 1, n + V_num + 1)  # T存储节点
+    t_x = np.linspace(0, 1, 160)  # t_x存储每一个t值
+    X = V[0]
+    Y = V[1]
+    x = []  # 用来存储曲线的x值
+    y = []  # 用来存储曲线的y值
+    for i in range(V_num - n):  # for循环用作获取第几条曲线段的数值
+        result = pd.DataFrame(t_x, columns=['t'])
+        for j in range(n + 1):
+            result1 = []
+            for t in t_x:
+                result1.append(N(i + j, n, T, t))
+            result['N_{0}{1}'.format(i + j, n)] = result1  # 将N_ij存入dataframe
+        # 把Dataframe中 T[i+n]<=t<=T[i+n+1] 的数据取出来 保存为 matrix, 然后用matrix*np.matrix(X[i:i+n+1]).T获取曲线的x值
+
+        # lambda x: x>T[i+n] and x<T[i+n+1] 很奇怪，用 >= 或 <= 曲线有时会有问题 比如 V = [[0,0,2,3,2,1],[1,3,3,2,1,1]]
+        Ni_matrix = np.matrix(result[result['t'].apply(lambda x: x >= T[i + n] and x <= T[i + n + 1])].iloc[:,
+                              1:])  # Ni_matrix 是一个 t_ba*j 维矩阵
+
+        x = x + ((Ni_matrix * np.matrix(X[i:i + n + 1]).T).T).tolist()[0]
+        y = y + ((Ni_matrix * np.matrix(Y[i:i + n + 1]).T).T).tolist()[0]
+
+    fig = plt.figure()
+    plt.plot(X, Y, marker='o', markerfacecolor='white')
+    plt.plot(x, y)
     plt.show()
+
+
+if __name__ == '__main__':
+    # n = int(input('请输入曲线的次数：'))
+    # V_num = int(input('请输入控制顶点个数：'))
+    n = 2
+    V_num = 6
+    V = [[1, 1.5, 3, 3.2, 5, 8, 8], [0, 3, 5, -0.3, -0.8, 2, 2]]
+    # V = [[1, 1, 1.5, 3, 3.8, 3.2, 5, 8, 8], [0, 0, 2.6, 3, 2.2, -0.3, -0.8, 2, 2]]  # 有重复型值点坐标
+    main(n, V, V_num)
+
+#
+# if __name__ == '__main__':
+#     # calculate_torque()
+#     # print(calc_fal(0.1, 'bic_s_l'))
+#     # plt.show()
+#
+#     n = 5
+#     p = 3
+#
+#     # nodeVector = [0, 0, 0, 0, 0.2, 0.4, 0.6, 0.8, 0.9, 1, 1, 1, 1]  # 节点向量
+#     nodeVector = np.linspace(0, 2, n+p+1)  # 节点向量
+#
+#     X = [0, 1, 2, 3, 4, 5, 6]
+#     Y = [0, 3, 1, 3, 1, 4, 1]
+#     draw_b_spline(n, p, nodeVector, X, Y)
+#
+#     # p = np.array([  # 控制点，控制贝塞尔曲线的阶数n
+#     #     [2, -4],
+#     #     [3, 8],
+#     #     [5, 1],
+#     #     [7, 6],
+#     #     [9, 4],
+#     #     [7, 1],
+#     #     [8, 5],
+#     # ])
+#     #
+#     # x = np.linspace(0, 1, 101)
+#     # xx, yy = get_newxy(p, x)
+#     # plt.plot(xx, yy, 'r', linewidth=1)  # 最终拟合的贝塞尔曲线
+#     # plt.scatter(xx[:], yy[:], 1, "blue")  # 散点图,表示采样点
+#     # plt.show()
+#
