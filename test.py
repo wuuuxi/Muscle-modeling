@@ -309,7 +309,7 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
     elif sport_label == 'bench_press':
         # plt.figure(figsize=(6, 7.7))
         plt.figure(figsize=(3.3, 7.7))
-        plt.subplot(len(muscle_idx) + 1, 1, 1)
+        plt.subplot(len(measured_muscle_idx) + 1, 1, 1)
         plt.plot(time, np.asarray(t), label='optimization', linewidth=2)
         plt.plot(time, torque, label='measured', linewidth=2)
         plt.subplots_adjust(left=0.225, right=0.935)
@@ -320,8 +320,8 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
         ax.axes.xaxis.set_visible(False)
         rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
         print("torque rmse", idx, ":\t", "{:.2f}".format(rmse))
-        for j in range(len(muscle_idx)):
-            plt.subplot(len(muscle_idx) + 1, 1, j + 2)
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(len(measured_muscle_idx) + 1, 1, j + 2)
             if plot_distribution is True:
                 if mvc_is_variable is True:
                     plt.errorbar(time_long, emg_mean_long[j, :] * c[j], 2 * emg_std_long[j, :] * c[j], label='emg',
@@ -334,7 +334,7 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
             # plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
             plt.plot(time, np.asarray(r[j, :]), label='optimization', linewidth=2, zorder=2)
             plt.ylabel(musc_label[j], weight='bold')
-            if j == len(muscle_idx) - 1:
+            if j == len(measured_muscle_idx) - 1:
                 plt.xlabel('time (s)')
             else:
                 ax = plt.gca()
@@ -375,13 +375,20 @@ def plot_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, em
         idx = num
 
     if sport_label == 'bench_press':
-        plt.figure(figsize=(3.3, 7.7))
-        plt.subplots_adjust(left=0.225, right=0.935)
+        # plt.figure(figsize=(3.3, 7.7))
+        # plt.subplots_adjust(left=0.225, right=0.935)
+        if num == 0:
+            plt.figure(figsize=(2.5, 6.7))
+            plt.subplots_adjust(left=0.285, right=0.985, top=0.990, bottom=0.075)
+        else:
+            plt.figure(figsize=(2.3, 6.7))
+            plt.subplots_adjust(left=0.225, right=0.985, top=0.990, bottom=0.075)
         plt.subplot(8, 1, 1)
         plt.plot(time, np.asarray(t1), label='optimization', linewidth=2)
         plt.plot(time, torque1, label='measured', linewidth=2)
         # plt.xlabel('time (s)')
-        plt.ylabel('torque1', weight='bold', size=10)
+        if legend_label is True or num == 0:
+            plt.ylabel('torque1', weight='bold', size=10)
         # plt.legend()
         ax = plt.gca()
         ax.set_xticklabels([])
@@ -389,13 +396,13 @@ def plot_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, em
         plt.subplot(8, 1, 2)
         plt.plot(time, np.asarray(t2), label='optimization', linewidth=2)
         plt.plot(time, torque2, label='measured', linewidth=2)
-        # plt.xlabel('time (s)')
-        plt.ylabel('torque2', weight='bold', size=10)
+        if legend_label is True or num == 0:
+            plt.ylabel('torque2', weight='bold', size=10)
         # plt.legend()
         ax = plt.gca()
         ax.set_xticklabels([])
 
-        for j in range(len(muscle_idx)):
+        for j in range(len(measured_muscle_idx)):
             plt.subplot(8, 1, j + 3)
             if plot_distribution is True:
                 if mvc_is_variable is True:
@@ -406,10 +413,11 @@ def plot_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, em
                                  zorder=1)
             else:
                 plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
-            # plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
+            # plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)  # zhushi
             plt.plot(time, np.asarray(r[j, :]), label='optimization', linewidth=2, zorder=2)
-            plt.ylabel(musc_label[j], weight='bold')
-            if j == len(muscle_idx) - 1:
+            if legend_label is True or num == 0:
+                plt.ylabel(musc_label[j], weight='bold')
+            if j == len(measured_muscle_idx) - 1:
                 plt.xlabel('time (s)')
             else:
                 ax = plt.gca()
@@ -430,7 +438,7 @@ def plot_all_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, c
         plot_result(i, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
 
 
-def plot_all_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, emg_mean_long, calu_torque1, calu_torque2, c):
+def plot_all_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, emg_mean_long, calu_torque1, calu_torque2, c=0):
     rmse = np.sqrt(np.sum((np.asarray(t1) - torque1) ** 2 + (np.asarray(t2) - torque2) ** 2) / len(torque1 + torque2))
     rmse1 = np.sqrt(np.sum((np.asarray(t1) - torque1) ** 2) / len(torque1))
     rmse2 = np.sqrt(np.sum((np.asarray(t2) - torque2) ** 2) / len(torque2))
@@ -708,6 +716,8 @@ def test_optimization_emg_bp(num, y, torque1, torque2, time, emg_mean_long, emg_
             # model.constr.add(model.x[i, j + 1] <= model.x[i, j] + target_len/emg_lift_len*5*emg_trend_u[i - 1][j - 1])
             model.constr.add(model.x[i, j] >= emg_mean[i - 1, j - 1] - emg_std[i - 1, j - 1] * 2.5)
             model.constr.add(model.x[i, j] <= emg_mean[i - 1, j - 1] + emg_std[i - 1, j - 1] * 2.5)
+            # model.constr.add(model.x[i, j] >= emg_mean[i - 1, j - 1] - emg_std[i - 1, j - 1] * 4)
+            # model.constr.add(model.x[i, j] <= emg_mean[i - 1, j - 1] + emg_std[i - 1, j - 1] * 4)
             model.constr.add(model.x[i, j] >= 0)
             model.constr.add(model.x[i, j] <= 1)
             model.constr.add(model.f[i, j] == model.x[i, j] * y[i - 1])  # muscle force
@@ -756,54 +766,17 @@ def test_optimization_emg_bp(num, y, torque1, torque2, time, emg_mean_long, emg_
     tor1 = np.asarray(t1)
     tor2 = np.asarray(t2)
 
-    # m = gekko.GEKKO(remote=False)
-    # x = m.Array(m.Var, arm1.shape, lb=0, ub=1)  # activation
-    # c = m.Array(m.Var, len(muscle_idx))  # MVC emg
-    # f = m.Array(m.Var, arm1.shape)  # muscle force
-    # t1 = m.Array(m.Var, torque1.shape)  # torque
-    # t2 = m.Array(m.Var, torque2.shape)  # torque
-    # m.Minimize(np.square(t - torque).mean() + m.sqrt(np.square(x).mean()))
-    # m.Minimize(np.square(t - torque).mean() + np.mean(abs(x)))
-    # m.Minimize(np.square(t1 - torque1).mean() + np.square(t1 - torque1).mean())
-    # m.Minimize(m.sqrt(((t - torque) ** 2).mean()) + m.sqrt((x ** 2).mean()))
-    # for i in range(arm1.shape[0]):
-    #     for j in range(arm1.shape[1]):
-    #         m.Equation(x[i][j] * y[i] == f[i, j])
-    #         m.Equation(sum(f[:, j] * arm1[:, j]) == t1[j])
-    #         m.Equation(sum(f[:, j] * arm2[:, j]) == t2[j])
-    #         if j < arm.shape[1] - 1:
-    #             m.Equation(x[i][j + 1] <= x[i][j] + target_len / emg_lift_len * 5 * emg_trend_u[i][j])
-    #             m.Equation(x[i][j + 1] >= x[i][j] + target_len / emg_lift_len * 5 * emg_trend_d[i][j])
-    #             # m.Equation(x[i][j + 1] <= x[i][j] + target_len / emg_lift_len * 10 * emg_trend_u[i][j])
-    #             # m.Equation(x[i][j + 1] >= x[i][j] + target_len / emg_lift_len * 10 * emg_trend_d[i][j])
-    #         m.Equation(x[i][j] <= (emg_mean[i][j] + emg_std[i][j] * 10))
-    #         m.Equation(x[i][j] >= (emg_mean[i][j] - emg_std[i][j] * 10))
-    # m.options.OTOL = 1  # 容差值
-    # m.solve(disp=False)
-
-    # xx = np.ones_like(x)
-    # for i in range(x.shape[0]):
-    #     for j in range(x.shape[1]):
-    #         a = x[i][j].value[0]
-    #         xx[i][j] = xx[i][j] * x[i][j].value[0]
-    # e1 = np.ones_like(t1)
-    # e2 = np.ones_like(t2)
-    # for i in range(t1.shape[0]):
-    #     e1[i] = e1[i] * t1[i].value[0]
-    #     e2[i] = e2[i] * t2[i].value[0]
-    # t1 = e1
-    # t2 = e2
-    # act = np.asarray(xx)
-    # tor1 = np.asarray(t1)
-    # tor2 = np.asarray(t2)
-
-    # plt.figure(figsize=(6, 7.7))
-    plt.figure(figsize=(3.3, 7.7))
-    plt.subplots_adjust(left=0.225, right=0.935)
+    # plt.figure(figsize=(3.3, 7.7))
+    # plt.subplots_adjust(left=0.225, right=0.935)
+    plt.figure(figsize=(2.3, 6.7))
+    plt.subplots_adjust(left=0.225, right=0.985, top=0.990, bottom=0.075)
+    # plt.figure(figsize=(2.5, 6.7))
+    # plt.subplots_adjust(left=0.285, right=0.985, top=0.990, bottom=0.075)
     plt.subplot(811)
     plt.plot(time, tor1, label='optimization', linewidth=2)
     plt.plot(time, torque1, label='measured', linewidth=2)
-    plt.ylabel('torque1', weight='bold', size=10)
+    if legend_label is True:
+        plt.ylabel('torque1', weight='bold', size=10)
     # plt.legend()
     ax = plt.gca()
     ax.set_xticklabels([])
@@ -813,26 +786,38 @@ def test_optimization_emg_bp(num, y, torque1, torque2, time, emg_mean_long, emg_
     plt.subplot(812)
     plt.plot(time, tor2, label='optimization', linewidth=2)
     plt.plot(time, torque2, label='measured', linewidth=2)
-    plt.ylabel('torque2', weight='bold', size=10)
+    if legend_label is True:
+        plt.ylabel('torque2', weight='bold', size=10)
     # plt.legend()
     ax = plt.gca()
     ax.set_xticklabels([])
     rmse = np.sqrt(np.sum((tor2 - torque2) ** 2) / len(torque2))
     print("torque rmse", ":\t", "{:.2f}".format(rmse))
 
-    for j in range(len(muscle_idx)):
+    for j in range(len(measured_muscle_idx)):
         plt.subplot(8, 1, j + 3)
         plt.errorbar(time_long, emg_mean_long[j, :], 2 * emg_std_long[j, :], label='emg', color='lavender', zorder=1)
         plt.plot(time, np.asarray(act[j, :]), label='optimization', linewidth=2, zorder=2)
         plt.plot(time, np.asarray(emg[j, :]), label='emg', linewidth=2, zorder=3)
-        plt.ylabel(musc_label[j], weight='bold')
+        if legend_label is True:
+            plt.ylabel(musc_label[j], weight='bold')
         rmse = np.sqrt(np.sum((act[j, :] - emg[j, :]) ** 2) / len(emg[0, :]))
         print("torque rmse", num, ":\t", "{:.4f}".format(rmse))
         # plt.legend()
-        if j != len(muscle_idx) - 1:
+        if j != len(measured_muscle_idx) - 1:
             ax = plt.gca()
             ax.set_xticklabels([])
+        else:
+            plt.xlabel('time (s)')
     plt.savefig('test_{}.png'.format(num))
+
+    # plt.figure()
+    # np.save('predication1', act)
+    # # np.save('time', time)
+    # plt.plot(time, np.asarray(act[1, :]))
+    # plt.title('Triceps Brachii', weight='bold')
+    # plt.ylabel('Activation', weight='bold')
+    # plt.xlabel('Time(s)', weight='bold')
 
 
 def application(label, y_r):
@@ -847,11 +832,32 @@ def application(label, y_r):
     elif label == 'chenzui-left-all-6.5kg':
         idx = ['18', '19', '20', '21', '22']
     elif label == 'bp-chenzui-left-4kg':
-        idx = ['62', '63']
+        idx = ['1', '2', '3', '4', '5', '6']
+    # elif label == 'bp-chenzui-left-5.5kg' or label == 'bp-chenzui-left-6.5kg':
+    #     idx = ['6', '7', '8']
+    elif label == 'bp-chenzui-left-5.5kg':
+        idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+    elif label == 'bp-chenzui-left-6.5kg':
+        idx = ['1', '2', '3', '4', '5', '6', '7', '8']
+    elif label == 'bp-chenzui-left-7kg':
+        idx = ['1', '2', '3', '4', '5', '6']
+    elif label == 'bp-chenzui-left-9.5kg':
+        idx = ['1', '2', '3', '4', '5', '6', '7']
     elif label == 'bp-zhuo-right-3kg':
         idx = ['4', '5', '6']
     elif label == 'bp-zhuo-right-4kg':
         idx = ['1', '2', '3', '4', '5', '6']
+    elif label == 'bp-yuetian-right-20kg':
+        idx = ['1', '2', '3', '4', '5', '6']
+    elif label == 'bp-yuetian-right-30kg':
+        idx = ['1', '2', '3', '4', '5', '6']
+    elif label == 'bp-yuetian-right-40kg':
+        idx = ['1', '2', '3', '4', '5', '6']
+    elif label == 'bp-yuetian-right-50kg':
+        idx = ['1', '2', '3', '4', '5', '6']
+    elif label == 'bp-yuetian-right-60kg':
+        idx = ['1', '2', '3', '4', '5', '6']
+
     else:
         print('No such label!')
         return 0
@@ -863,10 +869,16 @@ def application(label, y_r):
                                   emg_trend_u, emg_trend_d)
     else:
         for i in range(len(idx)):
-            emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-                = read_realted_files_bp(label=label, idx=idx[i])
-            test_optimization_emg_bp(i, y_r, torque1, torque2, time, emg_mean_long, emg_std_long, arm1, arm2, emg,
-                                     emg_mean, emg_std, emg_trend_u, emg_trend_d)
+            # emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
+            #     = read_realted_files_bp(label=label, idx=idx[i])
+            o = read_realted_files_bp(label=label, idx=idx[i])
+            # o1 = read_realted_files_bp(label='bp-yuetian-right-50kg', idx=idx[i])
+            # test_optimization_emg_bp(i, y_r, o1['torque1'] * 0.8, o1['torque2'] * 0.8, o1['time'], o1['emg_mean_long'],
+            #                          o1['emg_std_long'], o1['arm1'], o1['arm2'], o['emg'], o1['emg_mean'], o1['emg_std'],
+            #                          o1['trend_u'], o1['trend_d'])
+            test_optimization_emg_bp(i, y_r, o['torque1'], o['torque2'], o['time'], o['emg_mean_long'],
+                                     o['emg_std_long'], o['arm1'], o['arm2'], o['emg'], o['emg_mean'], o['emg_std'],
+                                     o['trend_u'], o['trend_d'])
         # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
         #     = read_realted_files(label=label, idx=idx[i], include_state='lift')
         # test_optimization_emg(i, y_r, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std,

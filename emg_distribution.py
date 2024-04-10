@@ -19,12 +19,12 @@ def emg_file_progressing(emg, fs=1000, people=None, sport='biceps_curl'):
             t_list = np.asarray([t1, t2, t3])
         return [emg_list, t_list]
     elif sport == 'bench_press':
-        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', people)
-        [emg_TRI, t2] = emg_rectification(emg[:, 2], fs, 'TRI', people)
-        [emg_ANT, t3] = emg_rectification(emg[:, 3], fs, 'ANT', people)
-        [emg_POS, t4] = emg_rectification(emg[:, 4], fs, 'POS', people)
-        [emg_PEC, t5] = emg_rectification(emg[:, 5], fs, 'PEC', people)
-        [emg_LAT, t6] = emg_rectification(emg[:, 6], fs, 'LAT', people)
+        [emg_BIC, t1] = emg_rectification(emg[:, 1], fs, 'BIC', people, left)
+        [emg_TRI, t2] = emg_rectification(emg[:, 2], fs, 'TRI', people, left)
+        [emg_ANT, t3] = emg_rectification(emg[:, 3], fs, 'ANT', people, left)
+        [emg_POS, t4] = emg_rectification(emg[:, 4], fs, 'POS', people, left)
+        [emg_PEC, t5] = emg_rectification(emg[:, 5], fs, 'PEC', people, left)
+        [emg_LAT, t6] = emg_rectification(emg[:, 6], fs, 'LAT', people, left)
         emg_list = np.asarray([emg_BIC, emg_TRI, emg_ANT, emg_POS, emg_PEC, emg_LAT])
         t_list = np.asarray([t1, t2, t3, t4, t5, t6])
         return [emg_list, t_list]
@@ -463,14 +463,94 @@ def calculate_chenzui_emg_distribution(label='3kg'):
                         [13.133, 23.899, 23.899, 37.565],
                         [11.433, 22.516, 22.516, 35.682]]  # 4kg
     elif label == 'bp-4kg':
-        file_folder = 'files/bench press/chenzui-4kg/'
-        files = [file_folder + '6.npy'] * 3
+        file_folder = 'files/bench press/chenzui/'
+        files = [file_folder + '4.npy'] * 6
         sport_label = 'bench_press'
-        t_delta_emg = [7.9805] * 3
-        t_delta_joi = [9.199] * 3
-        timestep_emg = [[14.899, 22.932, 22.932, 27.865],
-                        [32.565, 41.198, 41.198, 47.631],
-                        [52.364, 62.597, 62.597, 68.196]]  # 4kg
+        t_delta_joi = [10.266] * 6
+        t_delta_emg = [5.916] * 6
+        timestep_emg = [
+            # [16.966, 20.432, 20.432, 21.999],
+            [21.999, 26.499, 26.499, 27.898],
+            [28.632, 32.732, 32.732, 34.031],
+            [34.498, 38.031, 38.031, 39.365],
+            # [40.231, 43.664, 43.664, 46.431],
+            [46.797, 50.997, 50.997, 53.364],
+            [54.164, 57.564, 57.564, 60.33],
+            [60.33, 64.363, 64.363, 67.296],
+            # [67.896, 72.129, 72.129, 74.263],
+            # [74.429, 78.929, 78.929, 80.862]
+        ]  # 4kg
+    elif label == 'bp-5.5kg':
+        file_folder = 'files/bench press/chenzui/'
+        files = [file_folder + '5.5.npy'] * 9
+        sport_label = 'bench_press'
+        t_delta_emg = [5.655] * 9
+        t_delta_joi = [6.467] * 9
+        timestep_emg = [
+            [16.266, 20.099, 20.099, 22.266],
+            [22.699, 26.899, 26.899, 29.432],
+            [29.432, 34.882, 34.882, 37.298],
+            [37.932, 42.365, 42.365, 44.565],
+            [45.131, 49.164, 49.164, 51.664],
+            [52.131, 56.097, 56.097, 58.697],
+            [58.697, 62.897, 62.897, 65.097],
+            [65.497, 69.00, 69.00, 71.296],
+            [72.596, 75.00, 75.00, 77.463],
+            # [77.463, 80.729, 80.729, 83.562]
+        ]
+    elif label == 'bp-6.5kg':
+        file_folder = 'files/bench press/chenzui/'
+        files = [file_folder + '6.5.npy'] * 8
+        sport_label = 'bench_press'
+        t_delta_emg = [6.8905] * 8
+        t_delta_joi = [5.833] * 8
+        timestep_emg = [
+            [13.533, 16.166, 16.166, 18.066],
+            [18.533, 21.766, 21.766, 23.866],
+            [24.333, 27.632, 27.632, 29.999],
+            [30.199, 34.299, 34.299, 36.132],
+            [36.132, 40.165, 40.165, 42.398],
+            [42.998, 46.265, 46.265, 49.098],
+            [49.565, 52.964, 52.964, 55.264],
+            [55.831, 58.764, 58.764, 61.164],
+            # [61.597, 64.397, 64.397, 66.73]
+        ]  # 4kg
+    elif label == 'bp-7kg':
+        file_folder = 'files/bench press/chenzui/'
+        files = [file_folder + '7.npy'] * 10
+        sport_label = 'bench_press'
+        t_delta_emg = [5.6485] * 10
+        t_delta_joi = [6.1] * 10
+        timestep_emg = [
+            [15.566, 18.732, 18.732, 20.532],
+            [20.532, 24.065, 24.065, 25.899],
+            [26.232, 29.966, 29.966, 32.065],
+            [32.199, 35.832, 35.832, 38.132],
+            [38.132, 42.065, 42.065, 44.598],
+            [44.931, 48.265, 48.265, 50.531],
+            [50.531, 54.831, 54.831, 56.731],
+            [57.197, 61.047, 61.047, 63.063],
+            [63.63, 66.63, 66.63, 69.13],
+            [69.43, 73.497, 73.497, 75.496]
+        ]
+    elif label == 'bp-9.5kg':
+        file_folder = 'files/bench press/chenzui/'
+        files = [file_folder + '9.5.npy'] * 9
+        sport_label = 'bench_press'
+        t_delta_emg = [6.628] * 9
+        t_delta_joi = [5.633] * 9
+        timestep_emg = [
+            [16.599, 18.965, 18.965, 20.299],
+            [20.932, 23.465, 23.465, 24.865],
+            [25.232, 27.765, 27.765, 29.131],
+            [29.598, 32.065, 32.065, 33.531],
+            [33.664, 36.764, 36.764, 38.231],
+            [38.431, 41.464, 41.464, 42.897],
+            [43.597, 46.047, 46.047, 47.364],
+            [48.064, 50.397, 50.397, 51.897],
+            [53.064, 55.23, 55.23, 56.83],
+            # [57.497, 60.28, 60.28, 61.463]
+        ]
     else:
         print('No label:', label)
 
@@ -488,92 +568,77 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         else:
             muscles = [([], [], []) for _ in range(data_set_number)]  # number of muscle
     if sport_label == 'bench_press':
-        muscles = [([], [], [], [], [], []) for _ in range(data_set_number)]  # number of muscle
+        muscles = [[([]) for _ in range(len(measured_muscle_idx))] for _ in range(data_set_number)]  # number of muscle
     for k in range(data_set_number):
-        for j in range(len(muscle_idx)):
+        for j in range(len(measured_muscle_idx)):
             for i in range(int(len(timestep_emg[k]) / 2)):
                 muscles[k][j].append(resample_by_len(emg_all[k][j, find_nearest_idx(t_emg_all[k], timestep_emg[k][
                     2 * i]): find_nearest_idx(t_emg_all[k], timestep_emg[k][2 * i + 1])], unified_len))
 
     muscles = np.asarray(muscles)
 
-    data = [([]) for _ in range(len(muscle_idx))]
-    for k in range(len(muscle_idx)):
+    if need_all_muscle is True:
+        data = [([]) for _ in range(len(muscle_idx))]
+    else:
+        data = [([]) for _ in range(len(measured_muscle_idx))]
+    for k in range(len(measured_muscle_idx)):
         for i in range(data_set_number):
             data[k].append(np.concatenate([muscles[i, k, 0, :], muscles[i, k, 1, :]]))
+
+    if need_all_muscle is True:
+        if elbow_muscle is True:
+            allk = [11, 3, 3, 7, 5, 5]
+            alli = [6, 17, 20, 23, 30, 35]
+            allc = [0, 1, 2, 3, 4, 5]
+        else:
+            allk = [3, 3, 7, 5, 5]
+            alli = [6, 9, 12, 19, 24]
+            allc = [1, 2, 3, 4, 5]
+        for i in range(len(allk)):
+            for k in range(allk[i]):
+                idx = alli[i]
+                conum = allc[i]
+                data[idx + k] = data[conum]
+        if elbow_muscle is True:
+            a1, a2 = elbow_emg(data[0], data[1])
+            for j in range(3):
+                data[14 + j] = a1  # brachiorad
+            for j in range(7):
+                data[7 + j] = a2  # brachialis
     data = np.asarray(data)
 
-    # NUMPASSES = 3
-    # LOWPASSRATE = 3  # 低通滤波4—10Hz得到包络线
-    # Fs = 400
-    # Wn = LOWPASSRATE / (Fs / 2)
-    # [b, a] = scipy.signal.butter(NUMPASSES, Wn, 'low')
-    # data = scipy.signal.filtfilt(b, a, data, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))  # 低通滤波
-
-    # plt.figure(figsize=(6, 6.7))
-    # plt.subplot(311)
-    # plt.plot(data[0, 0, :])
-    # plt.plot(data[0, 1, :])
-    # plt.ylabel('biceps', weight='bold')
-    # ax = plt.gca()
-    # ax.axes.xaxis.set_visible(False)
-    # plt.subplot(312)
-    # plt.plot(data[1, 0, :])
-    # plt.plot(data[1, 1, :])
-    # plt.ylabel('brachialis', weight='bold')
-    # ax = plt.gca()
-    # ax.axes.xaxis.set_visible(False)
-    # plt.subplot(313)
-    # plt.plot(data[2, 0, :])
-    # plt.plot(data[2, 1, :])
-    # # plt.show()
-
-    data_mean = np.ones([data.shape[0], data.shape[2]])
-    data_std = np.ones([data.shape[0], data.shape[2]])
-    data_trend_u = np.ones([data.shape[0], data.shape[2] - 1])
-    data_trend_d = np.ones([data.shape[0], data.shape[2] - 1])
-    for i in range(len(muscle_idx)):  # three muscles
+    data_mean = np.ones([len(muscle_idx), data.shape[2]])
+    data_std = np.ones([len(muscle_idx), data.shape[2]])
+    data_trend_u = np.ones([len(muscle_idx), data.shape[2] - 1])
+    data_trend_d = np.ones([len(muscle_idx), data.shape[2] - 1])
+    for i in range(len(muscle_idx)):
         data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
         data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
-        # data_trend_u[i] = np.asarray([np.max(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
-        # data_trend_d[i] = np.asarray([np.min(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
         data_trend_u[i] = np.asarray(
             [(np.max(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
         data_trend_d[i] = np.asarray(
             [(np.min(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
-        # data_trend_u[i] = np.asarray([np.max(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
-        # data_trend_d[i] = np.asarray([np.min(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
-
-    # plt.figure(figsize=(6, 6.7))
-    # plt.subplot(311)
-    # # plt.plot(data_mean[0])
-    # # plt.plot(np.hstack([data_mean[0, 0], data_mean[0, :-1] * data_trend_u[0]]))
-    # # plt.plot(np.hstack([data_mean[0, 0], data_mean[0, :-1] * data_trend_d[0]]))
-    # plt.plot(data_trend_u[0])
-    # plt.plot(data_trend_d[0])
-    # plt.ylabel('biceps', weight='bold')
-    # ax = plt.gca()
-    # ax.axes.xaxis.set_visible(False)
-    # plt.subplot(312)
-    # # plt.plot(data_mean[1])
-    # # plt.plot(np.hstack([data_mean[1, 0], data_mean[1, :-1] * data_trend_u[1]]))
-    # # plt.plot(np.hstack([data_mean[1, 0], data_mean[1, :-1] * data_trend_d[1]]))
-    # plt.plot(data_trend_u[1])
-    # plt.plot(data_trend_d[1])
-    # plt.ylabel('brachialis', weight='bold')
-    # ax = plt.gca()
-    # ax.axes.xaxis.set_visible(False)
-    # plt.subplot(313)
-    # # plt.plot(data_mean[2])
-    # # plt.plot(np.hstack([data_mean[2, 0], data_mean[2, :-1] * data_trend_u[2]]))
-    # # plt.plot(np.hstack([data_mean[2, 0], data_mean[2, :-1] * data_trend_d[2]]))
-    # plt.plot(data_trend_u[2])
-    # plt.plot(data_trend_d[2])
-    # plt.ylabel('brachiorad', weight='bold')
-    # plt.xlabel('timestep', weight='bold')
+    # if need_all_muscle is True:
+    #     if elbow_muscle is True:
+    #         allk = [11, 3, 3, 7, 5, 5]
+    #         alli = [6, 17, 20, 23, 30, 35]
+    #         allc = [0, 1, 2, 3, 4, 5]
+    #     else:
+    #         allk = [3, 3, 7, 5, 5]
+    #         alli = [6, 9, 12, 19, 24]
+    #         allc = [1, 2, 3, 4, 5]
+    #     for i in range(len(allk)):
+    #         for k in range(allk[i]):
+    #             idx = alli[i]
+    #             conum = allc[i]
+    #             data_mean[idx + k] = data_mean[conum]
+    #             data_std[idx + k] = data_std[conum]
+    #             data_trend_u[idx + k] = data_trend_u[conum]
+    #             data_trend_d[idx + k] = data_trend_d[conum]
+    #     if elbow_muscle is True:
+    #         a1, a2 = elbow_emg(emg1, emg2)
 
     color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-    musc_label = ['Biceps', 'Triceps', 'Anterior', 'Posterior', 'Pectoralis', 'Latissimus']
     if sport_label == 'biceps_curl':
         plt.figure(figsize=(6, 6.7))
         plt.subplot(311)
@@ -601,12 +666,12 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         plt.xlabel('timestep', weight='bold')
     elif sport_label == 'bench_press':
         plt.figure(figsize=(6, 7.7))
-        for j in range(len(muscle_idx)):
-            plt.subplot(len(muscle_idx), 1, j + 1)
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(len(measured_muscle_idx), 1, j + 1)
             for i in range(data.shape[1]):
                 plt.plot(data[j, i, :], color=color[i % len(color)])
             plt.ylabel(musc_label[j], weight='bold')
-            if j != len(muscle_idx) - 1:
+            if j != len(measured_muscle_idx) - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_visible(False)
     num = num + 1
@@ -653,11 +718,11 @@ def calculate_chenzui_emg_distribution(label='3kg'):
             plt.xlabel('timestep', weight='bold')
     elif sport_label == 'bench_press':
         plt.figure(figsize=(6, 7.7))
-        for j in range(len(muscle_idx)):
-            plt.subplot(len(muscle_idx), 1, j + 1)
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(len(measured_muscle_idx), 1, j + 1)
             plt.errorbar(range(data_mean.shape[1]), data_mean[j], 2 * data_std[j])
             plt.ylabel(musc_label[j], weight='bold')
-            if j != len(muscle_idx) - 1:
+            if j != len(measured_muscle_idx) - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_visible(False)
         plt.xlabel('timestep', weight='bold')
@@ -687,18 +752,34 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         plt.xlabel('timestep', weight='bold')
     elif sport_label == 'bench_press':
         plt.figure(figsize=(6, 7.7))
-        for j in range(len(muscle_idx)):
-            plt.subplot(len(muscle_idx), 1, j + 1)
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(len(measured_muscle_idx), 1, j + 1)
             plt.errorbar(range(data_mean.shape[1]), data_mean[j], 2 * data_std[j], color='papayawhip')
             for i in range(data.shape[1]):
                 plt.plot(data[j, i, :], color=color[i % len(color)])
             plt.ylabel(musc_label[j], weight='bold')
-            if j != len(muscle_idx) - 1:
+            if j != len(measured_muscle_idx) - 1:
                 ax = plt.gca()
                 ax.axes.xaxis.set_visible(False)
         plt.xlabel('timestep', weight='bold')
     num = num + 1
     plt.savefig('emg_{}.png'.format(num))
+
+    if need_all_muscle is True and elbow_muscle is True:
+        m = ['Brachialis', 'Brachiorad', 'Biceps', 'Triceps']
+        k = [7, 14, 0, 1]
+        plt.figure(figsize=(6, 7.7))
+        for j in range(len(m)):
+            plt.subplot(len(m), 1, j + 1)
+            plt.errorbar(range(data_mean.shape[1]), data_mean[k[j]], 2 * data_std[k[j]])
+            plt.ylabel(m[j], weight='bold')
+        plt.figure(figsize=(6, 7.7))
+        for j in range(len(m)):
+            plt.subplot(len(m), 1, j + 1)
+            plt.errorbar(range(data_mean.shape[1]), data_mean[k[j]], 2 * data_std[k[j]], color='papayawhip')
+            for i in range(data.shape[1]):
+                plt.plot(data[k[j], i, :], color=color[i % len(color)])
+            plt.ylabel(m[j], weight='bold')
 
     if label == '2.5kg-all':
         np.save('emg/chenzui_mean_2.5kg', data_mean)
@@ -760,13 +841,26 @@ def calculate_chenzui_emg_distribution(label='3kg'):
         np.save('emg/bp-chenzui_std_4kg', data_std)
         np.save('emg/bp-chenzui_trend_u_4kg', data_trend_u)
         np.save('emg/bp-chenzui_trend_d_4kg', data_trend_d)
-
-    # print(np.max(yt[:, 0, :, :]))
-    # print(np.max(yt[:, 1, :, :]))
-    # print(np.max(yt[:, 2, :, :]))
-    # print(np.max(yt[:, 3, :, :]))
-    # print(np.max(yt[:, 4, :, :]))
-    # plt.show()
+    elif label == 'bp-5.5kg':
+        np.save('emg/bp-chenzui_mean_5.5kg', data_mean)
+        np.save('emg/bp-chenzui_std_5.5kg', data_std)
+        np.save('emg/bp-chenzui_trend_u_5.5kg', data_trend_u)
+        np.save('emg/bp-chenzui_trend_d_5.5kg', data_trend_d)
+    elif label == 'bp-6.5kg':
+        np.save('emg/bp-chenzui_mean_6.5kg', data_mean)
+        np.save('emg/bp-chenzui_std_6.5kg', data_std)
+        np.save('emg/bp-chenzui_trend_u_6.5kg', data_trend_u)
+        np.save('emg/bp-chenzui_trend_d_6.5kg', data_trend_d)
+    elif label == 'bp-7kg':
+        np.save('emg/bp-chenzui_mean_7kg', data_mean)
+        np.save('emg/bp-chenzui_std_7kg', data_std)
+        np.save('emg/bp-chenzui_trend_u_7kg', data_trend_u)
+        np.save('emg/bp-chenzui_trend_d_7kg', data_trend_d)
+    elif label == 'bp-9.5kg':
+        np.save('emg/bp-chenzui_mean_9.5kg', data_mean)
+        np.save('emg/bp-chenzui_std_9.5kg', data_std)
+        np.save('emg/bp-chenzui_trend_u_9.5kg', data_trend_u)
+        np.save('emg/bp-chenzui_trend_d_9.5kg', data_trend_d)
 
 
 def calculate_lizhuo_emg_distribution(label='1kg'):
@@ -853,15 +947,15 @@ def calculate_lizhuo_emg_distribution(label='1kg'):
         t_delta_emg = [4.749] * 9
         t_delta_joi = [12.9] * 9
         timestep_emg = [[26.132, 28.999, 28.999, 33.232],
-                      [35.032, 37.165, 37.165, 41.765],
-                      [43.631, 46.098, 46.098, 49.365],
-                      [51.698, 53.731, 53.731, 57.464],
-                      [59.697, 61.264, 61.264, 63.93],
-                      [66.497, 68.063, 68.063, 70.93],
-                      [73.263, 74.663, 74.663, 77.23],
-                      [81.03, 82.263, 82.263, 85.096],
-                      [87.996, 89.696, 89.696, 92.929],
-                      [95.729, 97.129, 97.129, 100.628]]  # 3kg
+                        [35.032, 37.165, 37.165, 41.765],
+                        [43.631, 46.098, 46.098, 49.365],
+                        [51.698, 53.731, 53.731, 57.464],
+                        [59.697, 61.264, 61.264, 63.93],
+                        [66.497, 68.063, 68.063, 70.93],
+                        [73.263, 74.663, 74.663, 77.23],
+                        [81.03, 82.263, 82.263, 85.096],
+                        [87.996, 89.696, 89.696, 92.929],
+                        [95.729, 97.129, 97.129, 100.628]]  # 3kg
     else:
         print('No label:', label)
 
@@ -896,31 +990,6 @@ def calculate_lizhuo_emg_distribution(label='1kg'):
             data[k].append(np.concatenate([muscles[i, k, 0, :], muscles[i, k, 1, :]]))
     data = np.asarray(data)
 
-    # NUMPASSES = 3
-    # LOWPASSRATE = 3  # 低通滤波4—10Hz得到包络线
-    # Fs = 200
-    # Wn = LOWPASSRATE / (Fs / 2)
-    # [b, a] = scipy.signal.butter(NUMPASSES, Wn, 'low')
-    # data = scipy.signal.filtfilt(b, a, data, padtype='odd', padlen=3 * (max(len(b), len(a)) - 1))  # 低通滤波
-    #
-    # plt.figure(figsize=(6, 6.7))
-    # plt.subplot(311)
-    # plt.plot(data[0, 0, :])
-    # plt.plot(data[0, 1, :])
-    # plt.ylabel('biceps', weight='bold')
-    # ax = plt.gca()
-    # ax.axes.xaxis.set_visible(False)
-    # plt.subplot(312)
-    # plt.plot(data[1, 0, :])
-    # plt.plot(data[1, 1, :])
-    # plt.ylabel('brachialis', weight='bold')
-    # ax = plt.gca()
-    # ax.axes.xaxis.set_visible(False)
-    # plt.subplot(313)
-    # plt.plot(data[2, 0, :])
-    # plt.plot(data[2, 1, :])
-    # # plt.show()
-
     data_mean = np.ones([data.shape[0], data.shape[2]])
     data_std = np.ones([data.shape[0], data.shape[2]])
     data_trend_u = np.ones([data.shape[0], data.shape[2] - 1])
@@ -928,24 +997,13 @@ def calculate_lizhuo_emg_distribution(label='1kg'):
     for i in range(len(muscle_idx)):  # three muscles
         data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
         data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
-        # data_trend_u[i] = np.asarray([np.max(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
-        # data_trend_d[i] = np.asarray([np.min(data[i, :, j + 1] / data[i, :, j]) for j in range(data.shape[2] - 1)])
         data_trend_u[i] = np.asarray(
             [(np.max(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
         data_trend_d[i] = np.asarray(
             [(np.min(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
-        # data_trend_u[i] = np.asarray([np.max(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
-        # data_trend_d[i] = np.asarray([np.min(data[i, :, j] / data[i, :, 0]) for j in range(data.shape[2] - 1)])
-        # if muscle_LAT is True and i == len(muscle_idx) - 1:
-        #     data_mean[i] = np.asarray([np.mean(data[i - 1, :, j]) for j in range(data.shape[2])])
-        #     data_std[i] = np.asarray([np.std(data[i - 1, :, j]) for j in range(data.shape[2])])
-        #     data_trend_u[i] = np.asarray(
-        #         [(np.max(data[i - 1, :, j + 1] - data[i - 1, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
-        #     data_trend_d[i] = np.asarray(
-        #         [(np.min(data[i - 1, :, j + 1] - data[i - 1, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
 
     color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-    musc_label = ['Biceps', 'Triceps', 'Anterior', 'Posterior', 'Pectoralis', 'Latissimus']
+    musc_label = ['Biceps', 'Triceps', 'Anterior', 'Medius', 'Pectoralis', 'Latissimus']
     if sport_label == 'biceps_curl':
         plt.figure(figsize=(6, 6.7))
         plt.subplot(311)
@@ -963,12 +1021,6 @@ def calculate_lizhuo_emg_distribution(label='1kg'):
         plt.subplot(313)
         for i in range(data.shape[1]):
             plt.plot(data[2, i, :], color=color[i % len(color)])
-        # for i in range(data.shape[1]):
-        #     if i < 3:
-        #         plt.plot(data[2, i, :], color=color[i % 3], label=label[i])
-        #     else:
-        #         plt.plot(data[2, i, :], color=color[i % 3])
-        # plt.legend()
         plt.ylabel('brachiorad', weight='bold')
         plt.xlabel('timestep', weight='bold')
     elif sport_label == 'bench_press':
@@ -1101,7 +1153,350 @@ def calculate_lizhuo_emg_distribution(label='1kg'):
     # plt.show()
 
 
+def calculate_other_emg_distribution(label='yt-bp-20kg'):
+    unified_len = 1000
+    fs = 1000
+    num = 0
+    if label == 'yt-bp-20kg':
+        rep = 10
+        file_folder = 'files/bench press/yuetian/0408/Test EMG/'
+        files = [file_folder + 'bptest 2024_04_08 19_25_06.xlsx'] * rep
+        sport_label = 'bench_press'
+        people = 'yuetian'
+        t_delta_emg = [5.1] * rep
+        t_delta_joi = [3.3] * rep
+        timestep_emg = [
+            [8.483, 9.8, 9.8, 10.616],
+            [10.616, 11.583, 11.583, 12.316],
+            [12.316, 13.3, 13.3, 13.983],
+            [13.983, 14.699, 14.699, 15.316],
+            [15.316, 15.949, 15.949, 16.466],
+            [16.466, 17.149, 17.149, 17.749],
+            [17.749, 18.366, 18.366, 18.916],
+            [18.916, 19.499, 19.499, 20.083],
+            [20.083, 20.666, 20.666, 21.199],
+            [21.199, 21.749, 21.749, 22.332]
+        ]
+    elif label == 'yt-bp-30kg':
+        rep = 8
+        file_folder = 'files/bench press/yuetian/0408/Test EMG/'
+        files = [file_folder + 'bptest 2024_04_08 19_29_21.xlsx'] * rep
+        sport_label = 'bench_press'
+        people = 'yuetian'
+        t_delta_emg = [3.56] * rep
+        t_delta_joi = [4.816] * rep
+        timestep_emg = [
+            [9.482, 11.199, 11.199, 12.299],
+            [12.699, 14.532, 14.532, 15.565],
+            [16.249, 17.949, 17.949, 19.049],
+            [19.499, 21.332, 21.332, 22.465],
+            [22.898, 24.965, 24.965, 25.965],
+            [26.198, 28.415, 28.415, 29.398],
+            [29.631, 31.465, 31.465, 32.415],
+            [32.648, 34.731, 34.731, 35.748]
+        ]
+    elif label == 'yt-bp-40kg':
+        rep = 8
+        file_folder = 'files/bench press/yuetian/0408/Test EMG/'
+        files = [file_folder + 'bptest 2024_04_08 19_33_53.xlsx'] * rep
+        sport_label = 'bench_press'
+        people = 'yuetian'
+        t_delta_emg = [3.217] * rep
+        t_delta_joi = [5.633] * rep
+        timestep_emg = [
+            [11.616, 13.866, 13.866, 14.849],
+            [15.599, 17.283, 17.283, 18.133],
+            [18.633, 20.266, 20.266, 21.182],
+            [21.632, 23.282, 23.282, 24.216],
+            [24.399, 26.116, 26.116, 26.999],
+            [27.199, 28.749, 28.749, 29.515],
+            [29.882, 31.249, 31.249, 32.049],
+            [32.049, 33.499, 33.499, 34.798]
+        ]
+    elif label == 'yt-bp-50kg':
+        rep = 8
+        file_folder = 'files/bench press/yuetian/0408/Test EMG/'
+        files = [file_folder + 'bptest 2024_04_08 19_35_47.xlsx'] * rep
+        sport_label = 'bench_press'
+        people = 'yuetian'
+        t_delta_emg = [2.23] * rep
+        t_delta_joi = [4.617] * rep
+        timestep_emg = [
+            [10.566, 12.333, 12.333, 13.25],
+            [13.583, 15.233, 15.233, 16.183],
+            [16.433, 17.566, 17.566, 18.599],
+            [18.833, 19.899, 19.899, 20.833],
+            [21.099, 21.966, 21.966, 23.099],
+            [23.099, 24.249, 24.249, 25.416],
+            [25.599, 26.899, 26.899, 27.666],
+            [27.982, 29.216, 29.216, 30.099]
+        ]
+    elif label == 'yt-bp-60kg':
+        rep = 10
+        file_folder = 'files/bench press/yuetian/0408/Test EMG/'
+        files = [file_folder + 'bptest 2024_04_08 19_38_03.xlsx'] * rep
+        sport_label = 'bench_press'
+        people = 'yuetian'
+        t_delta_emg = [3.273] * rep
+        t_delta_joi = [5.317] * rep
+        timestep_emg = [
+            [10.216, 12.25, 12.25, 13.099],
+            [13.349, 14.183, 14.183, 15.149],
+            [15.399, 16.349, 16.349, 17.199],
+            [17.366, 18.449, 18.449, 19.366],
+            [19.599, 20.432, 20.432, 21.532],
+            [21.632, 22.466, 22.466, 23.316],
+            [23.316, 24.416, 24.416, 25.349],
+            [25.349, 26.249, 26.249, 27.149],
+            [27.382, 28.165, 28.165, 29.015],
+            [29.015, 30.048, 30.048, 30.982]
+        ]
+    elif label == 'yt-bp-all':
+        rep1 = 10
+        rep2 = 8
+        rep3 = 8
+        rep4 = 8
+        rep5 = 10
+        file_folder = 'files/bench press/yuetian/0408/Test EMG/'
+        files = [[file_folder + 'bptest 2024_04_08 19_25_06.xlsx'] * rep1 +
+                 [file_folder + 'bptest 2024_04_08 19_29_21.xlsx'] * rep2 +
+                 [file_folder + 'bptest 2024_04_08 19_33_53.xlsx'] * rep3 +
+                 [file_folder + 'bptest 2024_04_08 19_35_47.xlsx'] * rep4 +
+                 [file_folder + 'bptest 2024_04_08 19_38_03.xlsx'] * rep5][0]
+        sport_label = 'bench_press'
+        people = 'yuetian'
+        t_delta_emg = [[5.1] * rep1 + [3.56] * rep2 + [3.217] * rep3 + [2.23] * rep4 + [3.273] * rep5][0]
+        t_delta_joi = [[3.3] * rep1 + [4.816] * rep2 + [5.633] * rep3 + [4.617] * rep4 + [5.317] * rep5][0]
+        timestep_emg = [
+            [8.483, 9.8, 9.8, 10.616],
+            [10.616, 11.583, 11.583, 12.316],
+            [12.316, 13.3, 13.3, 13.983],
+            [13.983, 14.699, 14.699, 15.316],
+            [15.316, 15.949, 15.949, 16.466],
+            [16.466, 17.149, 17.149, 17.749],
+            [17.749, 18.366, 18.366, 18.916],
+            [18.916, 19.499, 19.499, 20.083],
+            [20.083, 20.666, 20.666, 21.199],
+            [21.199, 21.749, 21.749, 22.332],
+            [9.482, 11.199, 11.199, 12.299],
+            [12.699, 14.532, 14.532, 15.565],
+            [16.249, 17.949, 17.949, 19.049],
+            [19.499, 21.332, 21.332, 22.465],
+            [22.898, 24.965, 24.965, 25.965],
+            [26.198, 28.415, 28.415, 29.398],
+            [29.631, 31.465, 31.465, 32.415],
+            [32.648, 34.731, 34.731, 35.748],
+            [11.616, 13.866, 13.866, 14.849],
+            [15.599, 17.283, 17.283, 18.133],
+            [18.633, 20.266, 20.266, 21.182],
+            [21.632, 23.282, 23.282, 24.216],
+            [24.399, 26.116, 26.116, 26.999],
+            [27.199, 28.749, 28.749, 29.515],
+            [29.882, 31.249, 31.249, 32.049],
+            [32.049, 33.499, 33.499, 34.798],
+            [10.566, 12.333, 12.333, 13.25],
+            [13.583, 15.233, 15.233, 16.183],
+            [16.433, 17.566, 17.566, 18.599],
+            [18.833, 19.899, 19.899, 20.833],
+            [21.099, 21.966, 21.966, 23.099],
+            [23.099, 24.249, 24.249, 25.416],
+            [25.599, 26.899, 26.899, 27.666],
+            [27.982, 29.216, 29.216, 30.099],
+            [10.216, 12.25, 12.25, 13.099],
+            [13.349, 14.183, 14.183, 15.149],
+            [15.399, 16.349, 16.349, 17.199],
+            [17.366, 18.449, 18.449, 19.366],
+            [19.599, 20.432, 20.432, 21.532],
+            [21.632, 22.466, 22.466, 23.316],
+            [23.316, 24.416, 24.416, 25.349],
+            [25.349, 26.249, 26.249, 27.149],
+            [27.382, 28.165, 28.165, 29.015],
+            [29.015, 30.048, 30.048, 30.982]
+        ]
+    else:
+        print('No label:', label)
+        return 0
+
+    data_set_number = len(files)
+    emg_all = [([]) for _ in range(data_set_number)]
+    t_emg_all = [([]) for _ in range(data_set_number)]
+    for i in range(data_set_number):
+        emg_all[i] = np.asarray(pd.read_excel(files[i]))
+        [emg_all[i], t_emg_all[i]] = emg_file_progressing(emg_all[i], fs, people, sport_label)
+        t_emg_all[i] = t_emg_all[i] - t_delta_emg[i] + t_delta_joi[i]
+
+    if sport_label == 'bench_press':
+        muscles = [[([]) for _ in range(len(measured_muscle_idx))] for _ in range(data_set_number)]  # number of muscle
+    for k in range(data_set_number):
+        for j in range(len(measured_muscle_idx)):
+            for i in range(int(len(timestep_emg[k]) / 2)):
+                muscles[k][j].append(resample_by_len(emg_all[k][j, find_nearest_idx(t_emg_all[k], timestep_emg[k][
+                    2 * i]): find_nearest_idx(t_emg_all[k], timestep_emg[k][2 * i + 1])], unified_len))
+
+    muscles = np.asarray(muscles)
+
+    if need_all_muscle is True:
+        data = [([]) for _ in range(len(muscle_idx))]
+    else:
+        data = [([]) for _ in range(len(measured_muscle_idx))]
+    for k in range(len(measured_muscle_idx)):
+        for i in range(data_set_number):
+            data[k].append(np.concatenate([muscles[i, k, 0, :], muscles[i, k, 1, :]]))
+
+    if need_all_muscle is True:
+        if elbow_muscle is True:
+            allk = [11, 3, 3, 7, 5, 5]
+            alli = [6, 17, 20, 23, 30, 35]
+            allc = [0, 1, 2, 3, 4, 5]
+        else:
+            allk = [3, 3, 7, 5, 5]
+            alli = [6, 9, 12, 19, 24]
+            allc = [1, 2, 3, 4, 5]
+        for i in range(len(allk)):
+            for k in range(allk[i]):
+                idx = alli[i]
+                conum = allc[i]
+                data[idx + k] = data[conum]
+        # if elbow_muscle is True:
+        #     a1, a2 = elbow_emg(data[0], data[1])
+        #     for j in range(3):
+        #         data[14 + j] = a1  # brachiorad
+        #     for j in range(7):
+        #         data[7 + j] = a2  # brachialis
+    data = np.asarray(data)
+
+    data_mean = np.ones([len(muscle_idx), data.shape[2]])
+    data_std = np.ones([len(muscle_idx), data.shape[2]])
+    data_trend_u = np.ones([len(muscle_idx), data.shape[2] - 1])
+    data_trend_d = np.ones([len(muscle_idx), data.shape[2] - 1])
+    for i in range(len(muscle_idx)):
+        data_mean[i] = np.asarray([np.mean(data[i, :, j]) for j in range(data.shape[2])])
+        data_std[i] = np.asarray([np.std(data[i, :, j]) for j in range(data.shape[2])])
+        data_trend_u[i] = np.asarray(
+            [(np.max(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
+        data_trend_d[i] = np.asarray(
+            [(np.min(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
+    # if need_all_muscle is True:
+    #     if elbow_muscle is True:
+    #         allk = [11, 3, 3, 7, 5, 5]
+    #         alli = [6, 17, 20, 23, 30, 35]
+    #         allc = [0, 1, 2, 3, 4, 5]
+    #     else:
+    #         allk = [3, 3, 7, 5, 5]
+    #         alli = [6, 9, 12, 19, 24]
+    #         allc = [1, 2, 3, 4, 5]
+    #     for i in range(len(allk)):
+    #         for k in range(allk[i]):
+    #             idx = alli[i]
+    #             conum = allc[i]
+    #             data_mean[idx + k] = data_mean[conum]
+    #             data_std[idx + k] = data_std[conum]
+    #             data_trend_u[idx + k] = data_trend_u[conum]
+    #             data_trend_d[idx + k] = data_trend_d[conum]
+    #     if elbow_muscle is True:
+    #         a1, a2 = elbow_emg(emg1, emg2)
+
+    color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+    # if sport_label == 'bench_press':
+    #     plt.figure(figsize=(6, 7.7))
+    #     for j in range(len(measured_muscle_idx)):
+    #         plt.subplot(len(measured_muscle_idx), 1, j + 1)
+    #         for i in range(data.shape[1]):
+    #             plt.plot(data[j, i, :], color=color[i % len(color)])
+    #         plt.ylabel(musc_label[j], weight='bold')
+    #         if j != len(measured_muscle_idx) - 1:
+    #             ax = plt.gca()
+    #             ax.axes.xaxis.set_visible(False)
+    # num = num + 1
+    # plt.savefig('emg_{}.png'.format(num))
+
+    if sport_label == 'bench_press':
+        plt.figure(figsize=(6, 7.7))
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(len(measured_muscle_idx), 1, j + 1)
+            plt.errorbar(range(data_mean.shape[1]), data_mean[j], 2 * data_std[j])
+            plt.ylabel(musc_label[j], weight='bold')
+            if j != len(measured_muscle_idx) - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_visible(False)
+        plt.xlabel('timestep', weight='bold')
+    num = num + 1
+    plt.savefig('emg_{}.png'.format(num))
+
+    if sport_label == 'bench_press':
+        plt.figure(figsize=(6, 7.7))
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(len(measured_muscle_idx), 1, j + 1)
+            plt.errorbar(range(data_mean.shape[1]), data_mean[j], 2 * data_std[j], color='papayawhip')
+            for i in range(data.shape[1]):
+                plt.plot(data[j, i, :], color=color[i % len(color)])
+            plt.ylabel(musc_label[j], weight='bold')
+            if j != len(measured_muscle_idx) - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_visible(False)
+        plt.xlabel('timestep', weight='bold')
+    num = num + 1
+    plt.savefig('emg_{}.png'.format(num))
+
+    # if need_all_muscle is True and elbow_muscle is True:
+    #     m = ['Brachialis', 'Brachiorad', 'Biceps', 'Triceps']
+    #     k = [7, 14, 0, 1]
+    #     plt.figure(figsize=(6, 7.7))
+    #     for j in range(len(m)):
+    #         plt.subplot(len(m), 1, j + 1)
+    #         plt.errorbar(range(data_mean.shape[1]), data_mean[k[j]], 2 * data_std[k[j]])
+    #         plt.ylabel(m[j], weight='bold')
+    #     plt.figure(figsize=(6, 7.7))
+    #     for j in range(len(m)):
+    #         plt.subplot(len(m), 1, j + 1)
+    #         plt.errorbar(range(data_mean.shape[1]), data_mean[k[j]], 2 * data_std[k[j]], color='papayawhip')
+    #         for i in range(data.shape[1]):
+    #             plt.plot(data[k[j], i, :], color=color[i % len(color)])
+    #         plt.ylabel(m[j], weight='bold')
+
+    if label == 'yt-bp-20kg':
+        np.save(file_folder + 'mean_20kg', data_mean)
+        np.save(file_folder + 'std_20kg', data_std)
+        np.save(file_folder + 'trend_u_20kg', data_trend_u)
+        np.save(file_folder + 'trend_d_20kg', data_trend_d)
+    elif label == 'yt-bp-30kg':
+        np.save(file_folder + 'mean_30kg', data_mean)
+        np.save(file_folder + 'std_30kg', data_std)
+        np.save(file_folder + 'trend_u_30kg', data_trend_u)
+        np.save(file_folder + 'trend_d_30kg', data_trend_d)
+    elif label == 'yt-bp-40kg':
+        np.save(file_folder + 'mean_40kg', data_mean)
+        np.save(file_folder + 'std_40kg', data_std)
+        np.save(file_folder + 'trend_u_40kg', data_trend_u)
+        np.save(file_folder + 'trend_d_40kg', data_trend_d)
+    elif label == 'yt-bp-50kg':
+        np.save(file_folder + 'mean_50kg', data_mean)
+        np.save(file_folder + 'std_50kg', data_std)
+        np.save(file_folder + 'trend_u_50kg', data_trend_u)
+        np.save(file_folder + 'trend_d_50kg', data_trend_d)
+    elif label == 'yt-bp-60kg':
+        np.save(file_folder + 'mean_60kg', data_mean)
+        np.save(file_folder + 'std_60kg', data_std)
+        np.save(file_folder + 'trend_u_60kg', data_trend_u)
+        np.save(file_folder + 'trend_d_60kg', data_trend_d)
+    elif label == 'yt-bp-all':
+        np.save(file_folder + 'mean_all', data_mean)
+        np.save(file_folder + 'std_all', data_std)
+        np.save(file_folder + 'trend_u_all', data_trend_u)
+        np.save(file_folder + 'trend_d_all', data_trend_d)
+
+
 if __name__ == '__main__':
-    calculate_chenzui_emg_distribution(label='bp-4kg')
+    # calculate_chenzui_emg_distribution(label='bp-9.5kg')
+    # calculate_chenzui_emg_distribution(label='bp-7kg')
+    # calculate_chenzui_emg_distribution(label='bp-6.5kg')
+    # calculate_chenzui_emg_distribution(label='bp-5.5kg')
+    # calculate_chenzui_emg_distribution(label='bp-4kg')
     # calculate_lizhuo_emg_distribution(label='1kg')
+    calculate_other_emg_distribution(label='yt-bp-all')
+    # calculate_other_emg_distribution(label='yt-bp-20kg')
+    # calculate_other_emg_distribution(label='yt-bp-30kg')
+    # calculate_other_emg_distribution(label='yt-bp-40kg')
+    # calculate_other_emg_distribution(label='yt-bp-50kg')
+    # calculate_other_emg_distribution(label='yt-bp-60kg')
     plt.show()

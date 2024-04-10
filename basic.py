@@ -1,6 +1,8 @@
 import scipy.interpolate as interpolate
 import numpy as np
 import scipy
+import pandas as pd
+import os
 from require import *
 
 if sport_label == 'biceps_curl':
@@ -32,8 +34,9 @@ if sport_label == 'biceps_curl':
 elif sport_label == 'bench_press':
     if muscle_number == 6:
         if left_or_right == 'left':
-            muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_1_l', 'pect_maj_t_1_l', 'LD_T10_l']
-            iso = [173.0, 223.0, 128.0, 289.0, 125.0, 27.6]
+            muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l', 'LD_T10_l']
+            measured_muscle_idx = muscle_idx
+            iso = [173.0, 223.0, 128.0, 286.0, 125.0, 27.6]
         else:
             assert left_or_right == 'right'
             # muscle_idx = ['bic_s', 'tric_long_1', 'delt_clav_1', 'delt_scap_1', 'pect_maj_t_1', 'LD_T10_r']
@@ -42,8 +45,40 @@ elif sport_label == 'bench_press':
             # iso = [173.0, 223.0, 128.0, 165.0, 125.0, 27.6]
             muscle_idx = ['bic_s', 'tric_long_1', 'delt_clav_1', 'ter_maj_1', 'pect_maj_t_1', 'LD_T10_r']
             iso = [173.0, 223.0, 128.0, 165.0, 125.0, 27.6]
-        musc_label = ['Biceps', 'Triceps', 'Deltoid', 'Serratus', 'Pectoralis', 'Latissimus']
+        musc_label = ['Biceps', 'Triceps', 'Deltoid', 'Medius', 'Pectoralis', 'Latissimus']
         # iso = [173.0, 223.0, 128.0, 289.0, 125.0, 27.6]
+    else:
+        if left_or_right == 'left':
+            measured_muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l',
+                                   'LD_T10_l']
+            muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l', 'LD_T10_l',
+                          'bic_l_l', 'brachialis_1_l', 'brachialis_2_l', 'brachialis_3_l', 'brachialis_4_l', 'brachialis_5_l',
+                          'brachialis_6_l', 'brachialis_7_l', 'brachiorad_1_l', 'brachiorad_2_l', 'brachiorad_3_l',
+                          'tric_long_2_l', 'tric_long_3_l', 'tric_long_4_l',
+                          'delt_clav_2_l', 'delt_clav_3_l', 'delt_clav_4_l',
+                          'delt_scap_4_l', 'delt_scap_5_l', 'delt_scap_6_l', 'delt_scap_7_l', 'delt_scap_8_l',
+                          'delt_scap10_l', 'delt_scap11_l',
+                          'pect_maj_t_2_l', 'pect_maj_t_3_l', 'pect_maj_t_4_l', 'pect_maj_t_5_l', 'pect_maj_t_6_l',
+                          'LD_T7_l', 'LD_T8_l', 'LD_T9_l', 'LD_T11_l', 'LD_T12_l']
+        else:
+            measured_muscle_idx = ['bic_s', 'tric_long_1', 'delt_clav_1', 'delt_scap_9', 'pect_maj_t_1', 'LD_T10_r']
+            muscle_idx = ['bic_s', 'tric_long_1', 'delt_clav_1', 'delt_scap_9', 'pect_maj_t_1', 'LD_T10_r',
+                          'bic_l', 'brachialis_1', 'brachialis_2', 'brachialis_3', 'brachialis_4', 'brachialis_5',
+                          'brachialis_6', 'brachialis_7', 'brachiorad_1', 'brachiorad_2', 'brachiorad_3',
+                          'tric_long_2', 'tric_long_3', 'tric_long_4',
+                          'delt_clav_2', 'delt_clav_3', 'delt_clav_4',
+                          'delt_scap_4', 'delt_scap_5', 'delt_scap_6', 'delt_scap_7', 'delt_scap_8',
+                          'delt_scap10', 'delt_scap11',
+                          'pect_maj_t_2', 'pect_maj_t_3', 'pect_maj_t_4', 'pect_maj_t_5', 'pect_maj_t_6',
+                          'LD_T7_r', 'LD_T8_r', 'LD_T9_r', 'LD_T11_r', 'LD_T12_r']
+        iso = [173.0, 223.0, 128.0, 286.0, 125.0, 27.6,
+               173.0, 173.0, 173.0, 173.0, 173.0, 173.0, 173.0, 173.0, 173.0, 173.0, 173.0,
+               223.0, 223.0, 223.0,
+               128.0, 128.0, 128.0,
+               286.0, 286.0, 286.0, 286.0, 286.0, 286.0, 286.0,
+               125.0, 125.0, 125.0, 125.0, 125.0,
+               27.6, 27.6, 27.6, 27.6, 27.6]
+        musc_label = ['Biceps', 'Triceps', 'Deltoid', 'Medius', 'Pectoralis', 'Latissimus']
 
 
 def resample_by_len(orig_list: list, target_len: int):
@@ -81,7 +116,7 @@ def find_nearest_idx(arr, value):
     return idx
 
 
-def emg_rectification(x, Fs=1000, code=None, people=None):
+def emg_rectification(x, Fs=1000, code=None, people=None, left=False):
     # Fs 采样频率，在EMG信号中是1000Hz
     x_mean = np.mean(x)
     raw = x - x_mean * np.ones_like(x)
@@ -144,6 +179,43 @@ def emg_rectification(x, Fs=1000, code=None, people=None):
             ref = 108.985 * 10
         else:
             ref = max(EMGLE)
+    elif people == 'yuetian':  # left
+        if left is True:
+            if code == 'LTA':
+                ref = 3.989497
+            elif code == 'LGL':
+                ref = 3.319789
+            elif code == 'LVL':
+                ref = 4.036685
+            elif code == 'LRF':
+                ref = 3.125095
+            elif code == 'LST':
+                ref = 3.45323
+            elif code == 'LBF':
+                ref = 4.025123
+            else:
+                ref = max(EMGLE)
+        else:
+            if code == 'BIC':
+                ref = 0.67077
+            elif code == 'TRI':
+                ref = 0.67077
+                # ref = 0.33346
+            elif code == 'ANT':
+                ref = 0.263597
+            elif code == 'POS':
+                ref = 0.23831
+            elif code == 'PEC':
+                ref = 0.43018
+            elif code == 'LAT':
+                ref = 0.15176
+            elif code == 'BRA':
+                ref = 0.67077
+            elif code == 'BRD':
+                ref = 0.67077
+            else:
+                ref = 2
+            # ref = 2
     else:
         print('No information of this people.')
     # ref = 1
@@ -151,3 +223,35 @@ def emg_rectification(x, Fs=1000, code=None, people=None):
     normalized_EMG = EMGLE / ref
     y = normalized_EMG
     return [y, t]
+
+
+def elbow_emg(emg1, emg2):
+    # emg1: Biceps
+    # emg2: Triceps
+    x = np.asarray([[5.79835623, 1.40694018, 0.26443844, 1.34689293],
+                    [0.17944381, 1.81618533, 4.21557155, 0.0]])
+    # x = np.asarray([[5.02488458, 0.67736425, 1.00691882, 0.47668198],
+    #                 [0.0, 2.30828341, 0.47426132, 2.30039555]])
+    emg1 = np.asarray(emg1)
+    emg2 = np.asarray(emg2)
+    s1 = -(x[1, 2] * emg2 - x[1, 3] * emg1) / (x[0, 2] * x[1, 3] - x[1, 2] * x[0, 3])
+    s2 = (x[0, 2] * emg2 - x[0, 3] * emg1) / (x[0, 2] * x[1, 3] - x[1, 2] * x[0, 3])
+    a1 = s1 * x[0, 0] + s2 * x[1, 0]
+    a2 = s1 * x[0, 1] + s2 * x[1, 1]
+    return a1, a2
+
+
+def from_csv_to_xlsx(folder):
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            if 'csv' in file:
+                xlsx_file = file[:-4] + '.xlsx'
+                # 由于处理HKU的emg，从第6行开始读
+                # data_frame = pd.read_csv(root + '/' + file, skiprows=5)
+                data_frame = pd.read_csv(root + '/' + file)
+                data_frame.to_excel(root + '/' + xlsx_file, index=False)
+
+
+if __name__ == '__main__':
+    # from_csv_to_xlsx('files/bench press/kehan/Kehan bench')
+    from_csv_to_xlsx('files/bench press/yuetian/0408/20240408健身机数据')

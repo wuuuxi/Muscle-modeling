@@ -33,8 +33,12 @@ def optimization(emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_lo
                 m.Equation((emg_mean[i][j] * c[i] + emg_std[i][j] * c[i] * 2) <= 1)
                 # m.Equation((emg_mean[i][j] * c[i] - emg_std[i][j] * c[i] * 2) >= 0)
             else:
-                m.Equation(x[i][j] <= emg[i][j] * 1.20)
-                m.Equation(x[i][j] >= emg[i][j] * 0.80)
+                if emg[i][j] < 0.01:
+                    m.Equation(x[i][j] <= (emg_mean[i][j] * c[i] + emg_std[i][j] * c[i] * 2))
+                    m.Equation(x[i][j] >= (emg_mean[i][j] * c[i] - emg_std[i][j] * c[i] * 2))
+                else:
+                    m.Equation(x[i][j] <= emg[i][j] * 1.20)
+                    m.Equation(x[i][j] >= emg[i][j] * 0.80)
                 # m.Equation(x[i][j] <= (emg_mean[i][j] + emg_std[i][j] * 2))
                 # m.Equation(x[i][j] >= (emg_mean[i][j] - emg_std[i][j] * 2))
         # m.Equations([y[i] >= 3 * iso1[i], y[i] <= 3 * iso2[i]])
@@ -351,7 +355,7 @@ def optimization_pyomo_bp(emg_mean, emg_std, arm1, arm2, torque1, torque2, time,
     # 定义约束条件
     model.constr = ConstraintList()
     for i in model.I:
-        model.constr.add(model.y[i] >= iso[i - 1] * 0.5)
+        model.constr.add(model.y[i] >= iso[i - 1] * 0.05)
         model.constr.add(model.y[i] <= iso[i - 1] * 200)
     for j in model.J:
         for i in model.I:
@@ -418,7 +422,7 @@ def optimization_pyomo_bp(emg_mean, emg_std, arm1, arm2, torque1, torque2, time,
     # print("最优解：x =", x, "y =", y)
 
     # 打印结果
-    for i in range(len(muscle_idx)):
+    for i in range(len(measured_muscle_idx)):
         print(muscle_idx[i], ':\t', "{:.2f}".format(np.asarray(y)[i]))  # print the maximum isometric force
 
     active_force = emg.T * y
@@ -462,7 +466,9 @@ def optimization_mat(time, torque, fvfl, emg, arm):
     m.solve(disp=False)
     # print(x)
     # print(y)
-    for i in range(y.size):
+    # for i in range(y.size):
+    #     print(muscle_idx[i], ':\t', "{:.2f}".format(np.asarray(y)[i].value[0]))
+    for i in range(len(measured_muscle_idx)):
         print(muscle_idx[i], ':\t', "{:.2f}".format(np.asarray(y)[i].value[0]))
     if mvc_is_variable is True:
         print('-' * 50)
@@ -492,20 +498,17 @@ def optimization_mat(time, torque, fvfl, emg, arm):
 def one_repetition(label, idx):
     for i in range(len(idx)):
         print('-' * 25, i, '-' * 25)
-        # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-        #     = read_realted_files(label, idx[i])
-        # t, r, calu_torque, c, y_r = optimization(emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg,
-        #                                          time_emg, emg_trend_u, emg_trend_d)
-        # rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
-        # print("torque rmse:\t", "{:.2f}".format(rmse))
-        # plot_result(0, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c, i)
-        emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-            = read_realted_files_bp(label, idx[i])
-        t1, t2, r, calu_torque1, calu_torque2, y_r = optimization_pyomo_bp(emg_mean, emg_std, arm1, arm2, torque1,
-                                                                           torque2, time, emg)
-        c = 0
-        plot_all_result_bp(1, t1, t2, r, emg, time, torque1, torque2, emg_std_long, emg_mean_long, calu_torque1,
-                           calu_torque2, c)
+        # emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
+        #     = read_realted_files_bp(label, idx[i])
+        o = read_realted_files_bp(label, idx[i])
+        t1, t2, r, calu_torque1, calu_torque2, y_r = \
+            optimization_pyomo_bp(o['emg_mean'], o['emg_std'], o['arm1'], o['arm2'], o['torque1'], o['torque2'], o['time'], o['emg'])
+        plot_all_result_bp(1, t1, t2, r, o['emg'], o['time'], o['torque1'], o['torque2'], o['emg_std_long'],
+                           o['emg_mean_long'], calu_torque1, calu_torque2)
+        # t1, t2, r, calu_torque1, calu_torque2, y_r = optimization_pyomo_bp(emg_mean, emg_std, o['arm1'], o['arm2'], o['torque1'],
+        #                                                                    o['torque1'], o['time'], o['emg'])
+        # plot_all_result_bp(1, t1, t2, r, emg, time, torque1, torque2, emg_std_long, emg_mean_long, calu_torque1,
+        #                    calu_torque2)
 
 
 def plot_mat(num, length, t_all, r_all, emg_all, time_all, torque_all):
@@ -577,65 +580,63 @@ def plot_mat(num, length, t_all, r_all, emg_all, time_all, torque_all):
 
 
 if __name__ == '__main__':
-    # calculate_chenzui_emg_distribution(label='bp-4kg')
-    # calculate_lizhuo_emg_distribution(label='bp-4kg')
-    # plt.show()
-    #
-    # # label = 'chenzui-left-all-6.5kg-cts'
-    # # idx = ['23-1', '23-2', '23-3', '23-4', '23-5']
-    # # label = 'chenzui-left-all-4kg-cts'
-    # # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16']
-    # # label = 'chenzui-left-all-5.5kg-cts'
+    # calculate_other_emg_distribution(label='yt-bp-50kg')
+    # # calculate_chenzui_emg_distribution(label='bp-4kg')
+    # # calculate_lizhuo_emg_distribution(label='bp-4kg')
+    # # plt.show()
+    # #
+    # # # label = 'chenzui-left-all-4kg-cts'
+    # # # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16']
+    # # # label = 'chenzui-left-all-5.5kg-cts'
+    # # # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+    # # label = 'bp-chenzui-left-5.5kg'
     # # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-    # label = 'chenzui-left-all-6.5kg-cts'
-    # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    # label = 'bp-zhuo-right-3kg'
-    # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-    # one_repetition(label, idx)
-    #
-    emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-        = read_groups_files('bp-zhuo-right-3kg')
-    # emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-    #     = read_realted_files_bp('bp-zhuo-right-4kg', '1')
-    # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d  \
-    #     = read_realted_files('bp-zhuo-right-4kg', '5')
-    # emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-    #     = read_realted_files_bp('bp-chenzui-left-4kg', '62')
-    # # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-    # #     = read_groups_files('chenzui-left-2.5kg_and_6.5kg')
-    # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-    #     = read_groups_files('chenzui-left-2.5kg_and_3kg_and_6.5kg')
-    # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-    #     = read_realted_files(label='chenzui-left-all-6.5kg', idx='18')
-    # # plt.figure(figsize=(4, 3))
-    # # plt.plot(arm[0, :], label='biceps')
-    # # plt.plot(arm[1, :], label='brachialis')
-    # # plt.plot(arm[2, :], label='brachiorad')
-    # # plt.xlabel('timestep')
-    # # plt.ylabel('moment arm (m)')
-    # # plt.legend()
+    # # label = 'bp-yuetian-right-40kg'
+    # # # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+    # # idx = ['1', '2', '3']
+    # # one_repetition(label, idx)
     # # plt.show()
     #
-    # t, r, calu_torque, c, y_r = optimization(emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg,
-    #                                          time_emg, emg_trend_u, emg_trend_d)
-    # t, r, calu_torque, y = optimization_pyomo(emg_mean, emg_std, arm, torque, time, emg)
-    t1, t2, r, calu_torque1, calu_torque2, y_r = optimization_pyomo_bp(emg_mean, emg_std, arm1, arm2, torque1, torque2,
-                                                                       time, emg)
-
-    print('-' * 25, 'training rmse', '-' * 25)
-    c = 0
-    # plot_all_result(1, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
-    plot_all_result_bp(3, t1, t2, r, emg, time, torque1, torque2, emg_std_long, emg_mean_long, calu_torque1,
-                       calu_torque2, c)
-
-    # y_r = np.asarray([8547.72, 17095.45, 1709.54])
-    # y_r = np.asarray([11123.34, 11123.34, 1112.33])
-    # y_r = np.asarray([10744.52, 10744.52, 1074.45])
-    # y_r = np.asarray([7592.42, 15184.84, 1670.72])
-    # y_r = np.asarray([4176.24, 28956.69, 788.10])
-    # y_r = np.asarray([17300.00, 111.50, 2788.51, 144.50, 62.50, 13.80])
+    # files = read_groups_files('bp-yuetian-right-mix')
+    # # emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
+    # #     = read_realted_files_bp('bp-zhuo-right-4kg', '1')
+    # # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d  \
+    # #     = read_realted_files('bp-zhuo-right-4kg', '5')
+    # # emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
+    # #     = read_realted_files_bp('bp-chenzui-left-4kg', '62')
+    # t1, t2, r, calu_torque1, calu_torque2, y_r = \
+    #     optimization_pyomo_bp(files['emg_mean'], files['emg_std'], files['arm1'], files['arm2'],
+    #                           files['torque1'], files['torque2'], files['time'], files['emg'])
+    #
+    # print('-' * 25, 'training rmse', '-' * 25)
+    # c = 0
+    # # plot_all_result(1, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+    # plot_all_result_bp(9, t1, t2, r, files['emg'], files['time'], files['torque1'], files['torque2'],
+    #                    files['emg_std_long'], files['emg_mean_long'], calu_torque1, calu_torque2, c)
+    #
+    # # y_r = np.asarray([8547.72, 17095.45, 1709.54])
+    # # y_r = np.asarray([11123.34, 11123.34, 1112.33])
+    # # y_r = np.asarray([10744.52, 10744.52, 1074.45])
+    # # y_r = np.asarray([7592.42, 15184.84, 1670.72])
+    # # y_r = np.asarray([4176.24, 28956.69, 788.10])
+    # # y_r = np.asarray([86.50, 2679.23, 64.00, 143.01, 4985.50, 4849.45])
+    # # y_r = np.asarray([86.50, 111.50, 64.00, 57199.92, 5853.39, 5520.00,
+    # #                   86.50, 86.50, 86.50, 86.50, 86.50, 86.50, 86.50, 86.50, 86.50, 86.50, 86.50,
+    # #                   111.50, 111.50, 111.50,
+    # #                   64.00, 64.00, 64.00,
+    # #                   57199.92, 57199.92, 57199.92, 57199.92, 57199.92, 57199.92, 57199.92,
+    # #                   4985.50, 4985.50, 4985.50, 4985.50, 4985.50,
+    # #                   4849.45, 4849.45, 4849.45, 4849.45, 4849.45])
     print('-' * 25, 'application', '-' * 25)
-    application('bp-zhuo-right-3kg', y_r)
+    # np.save('fmax', y_r)
+    y_r = np.load('fmax.npy')
+    # application('bp-chenzui-left-4kg', y_r)
+    # application('bp-chenzui-left-5.5kg', y_r)
+    # application('bp-chenzui-left-6.5kg', y_r)
+    # application('bp-chenzui-left-7kg', y_r)
+    # application('bp-chenzui-left-7kg', y_r)
+    application('bp-yuetian-right-40kg', y_r)
+
     # application('chenzui-left-all-4kg', y_r)
     # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
     #     = read_realted_files(label='chenzui-left-all-2.5kg', idx='8')
@@ -645,42 +646,5 @@ if __name__ == '__main__':
     #     = read_realted_files(label='chenzui-left-all-6.5kg', idx='18')
     # test_optimization_emg(4, y_r, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std,
     #                       emg_trend_u, emg_trend_d)
-
-    # time1, torque1, fvfl1, acti1, marm1 = read_mat_files('2kg')
-    # plt.figure(figsize=(4, 3))
-    # plt.plot(marm1[0, :], label='biceps')
-    # plt.plot(marm1[1, :], label='brachialis')
-    # plt.plot(marm1[2, :], label='brachiorad')
-    # plt.xlabel('timestep')
-    # plt.ylabel('moment arm (m)')
-    # plt.legend()
-    # plt.show()
-    # time2, torque2, fvfl2, acti2, marm2 = read_mat_files('3.5kg')
-    # time3, torque3, fvfl3, acti3, marm3 = read_mat_files('5kg')
-    # length = min(len(time1), len(time2), len(time3))
-    # time = np.hstack((time1[:length], time2[:length], time3[:length]))
-    # torque = np.hstack((torque1[:length], torque2[:length], torque3[:length]))
-    # fvfl = np.concatenate((fvfl1[:, :length], fvfl2[:, :length], fvfl3[:, :length]), axis=1)
-    # acti = np.concatenate((acti1[:, :length], acti2[:, :length], acti3[:, :length]), axis=1)
-    # marm = np.concatenate((marm1[:, :length], marm2[:, :length], marm3[:, :length]), axis=1)
-    #
-    # # time1, torque1, fvfl1, acti1, marm1 = read_mat_files('2kg')
-    # # time2, torque2, fvfl2, acti2, marm2 = read_mat_files('5kg')
-    # # length = min(len(time1), len(time2))
-    # # time = np.hstack((time1[:length], time2[:length]))
-    # # torque = np.hstack((torque1[:length], torque2[:length]))
-    # # fvfl = np.concatenate((fvfl1[:, :length], fvfl2[:, :length]), axis=1)
-    # # acti = np.concatenate((acti1[:, :length], acti2[:, :length]), axis=1)
-    # # marm = np.concatenate((marm1[:, :length], marm2[:, :length]), axis=1)
-    #
-    # t, r, calu_torque, c, y_r = optimization_mat(time, torque, fvfl, acti, marm)
-    # print('-' * 25, 'training rmse', '-' * 25)
-    # rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
-    # print(rmse)
-    # emg_std_long = acti
-    # emg_mean_long = acti * 0.02
-    # # emg = acti
-    # plot_mat(1, length, t, r, acti, time, torque)
-    # # plot_result(0, t, r, acti, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
 
     plt.show()

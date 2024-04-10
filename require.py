@@ -1,5 +1,7 @@
-muscle_number = 6
+# muscle_number = 6
+muscle_number = 40
 left_or_right = 'right'
+left = False
 # sport_label = 'biceps_curl'
 sport_label = 'bench_press'
 
@@ -21,6 +23,9 @@ mvc_is_variable = False
 plot_distribution = True
 # arm_constant = False
 arm_constant = True
+need_all_muscle = True
+legend_label = False
+elbow_muscle = True
 
 muscle_LAT = True
 seven_six = True
