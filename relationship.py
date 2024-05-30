@@ -5,9 +5,9 @@ import scipy.interpolate as interpolate
 # import cvxpy as cp
 import numpy as np
 import pandas as pd
-from mpmath import diff
+# from mpmath import diff
 import scipy
-import gekko
+# import gekko
 from scipy.optimize import leastsq
 
 from read_files import *
@@ -387,6 +387,25 @@ def joint_processing_bp_yt(q, time0):
     time = np.asarray(time)
     q_1 = np.asarray(q_1)
     q_2 = np.asarray(q_2)
+    return time, q_1,
+
+
+def joint_processing_dl_yt(q):
+    time = []
+    q_1 = []
+    q_2 = []
+    q_t = np.asarray(q['time'])
+    datatime0 = 0
+    for i in range(len(q_t)):
+        datatime = q_t[i]
+        t = datatime - datatime0
+        if t >= 0:
+            time.append(t)
+            q_1.append(q['hip_flexion_r'][i])
+            q_2.append(q['knee_angle_r'][i])
+    time = np.asarray(time)
+    q_1 = np.asarray(q_1)
+    q_2 = np.asarray(q_2)
     return time, q_1, q_2
 
 
@@ -403,9 +422,23 @@ def emg_progressing_bp_yt(emg, fs=1000, people=None, left=True):
     return [emg_list, t1[:emg_list.shape[1]]]
 
 
+def emg_progressing_dl_yt(emg, fs=1000, people=None, left=True):
+    emg = np.asarray(emg)
+    emg_rect_label = ['TA', 'GL', 'GM', 'VL', 'RF', 'VM', 'TFL', 'AddLong', 'ST', 'BF',
+                      'GMax', 'GMed', 'PM', 'IO', 'RA', 'ESI', 'Mul', 'EO', 'ESL', 'LD']
+    emg_list = []
+    for i in range(len(emg_rect_label)):
+        [emg_rect, t1] = emg_rectification(emg[:, i + 1], fs, emg_rect_label[i], people, left)
+        emg_list.append(emg_rect)
+    emg_list = np.asarray(emg_list)
+    return [emg_list, t1[:emg_list.shape[1]]]
+
+
 def time_alignment(q1, e1, time0, Fs_e):
-    q_t, q_1, q_2 = joint_processing_bp_yt(q1, time0)
-    [e1, e_t] = emg_progressing_bp_yt(e1, Fs_e, 'yuetian', False)
+    # q_t, q_1, q_2 = joint_processing_bp_yt(q1, time0)
+    # [e1, e_t] = emg_progressing_bp_yt(e1, Fs_e, 'yuetian', False)
+    q_t, q_1, q_2 = joint_processing_dl_yt(q1)
+    [e1, e_t] = emg_progressing_dl_yt(e1, Fs_e, 'yuetian', False)
 
     time_end = min(max(q_t), max(e_t))
     if max(q_t) < time_end:
@@ -419,11 +452,11 @@ def time_alignment(q1, e1, time0, Fs_e):
         e1 = e1[:, :idx]
 
     t = []
-    e = [([]) for _ in range(6)]
+    e = [([]) for _ in range(20)]
     for i in range(len(q_t)):
         j = find_nearest_idx(e_t, q_t[i])
         t.append(e_t[j])
-        for k in range(6):
+        for k in range(20):
             e[k].append(e1[k, j])
     t = np.asarray(t)
     e = np.asarray(e)
@@ -486,10 +519,71 @@ def bench_press_yuetian():
         ax.plot_surface(X, Y, new_func(X, Y, i), cmap='rainbow')
 
 
-if __name__ == '__main__':
-    bench_press_yuetian()
+def deadlift_yuetian():
+    Fs_e = 1000
+    file_folder = 'files/deadlift/yuetian/'
+    q1 = pd.read_excel(file_folder + 'Xsens_jointangle_q-65.xlsx')
+    q2 = pd.read_excel(file_folder + 'Xsens_jointangle_q-75.xlsx')
+    # e1 = pd.read_excel(file_folder + 'test 2024_05_17 16_27_52.xlsx')
+    # e2 = pd.read_excel(file_folder + 'test 2024_05_17 16_30_59.xlsx')
+    e1 = pd.read_excel(file_folder + 'emg/test 2024_05_17 16_37_38.xlsx')
+    e2 = pd.read_excel(file_folder + 'emg/test 2024_05_17 16_41_21.xlsx')
+    t1, q1_1, q2_1, e1 = time_alignment(q1, e1, '18:52:55', Fs_e)
+    t2, q1_2, q2_2, e2 = time_alignment(q2, e2, '18:52:55', Fs_e)
+    t = np.concatenate((t1, t2), axis=0)
+    q_1 = np.concatenate((q1_1, q1_2), axis=0)
+    q_2 = np.concatenate((q2_1, q2_2), axis=0)
+    e = np.concatenate((e1, e2), axis=1)
 
-    plt.show()
+    plt.figure()
+    plt.subplot(211)
+    plt.plot(t, q_1)
+    plt.plot(t, q_2)
+    plt.subplot(212)
+    plt.plot(t, e[0])
+    plt.plot(t, e[1])
+
+    for i in range(20):
+        c, function = angle_function(q_1, q_2, e[i, :], 1, 1)
+        print(c)
+
+    plt.figure()
+    for i in range(6):
+        c, function = angle_function(q_1, q_2, e[i, :], 1, 1)
+        ax = plt.subplot(2, 3, i + 1, projection="3d")
+        ax.scatter(q_1, q_2, e[i, :], s=1, color='blue')
+        ax.scatter(q_1, q_2, func(q_1, q_2, 1, 1, c), s=1, color='red')
+
+    plt.figure()
+    for i in range(6):
+        c, function = angle_function(q_1, q_2, e[i, :], 1, 1)
+        plt.subplot(2, 3, i + 1)
+        plt.plot(q_1, e[i, :], color='blue')
+        plt.plot(q_1, func(q_1, q_2, 1, 1, c), color='red')
+
+    plt.figure()
+    for i in range(6):
+        c, function = angle_function(q_1, q_2, e[i, :], 1, 1)
+        plt.subplot(2, 3, i + 1)
+        plt.plot(q_2, e[i, :], color='blue')
+        plt.plot(q_2, func(q_1, q_2, 1, 1, c), color='red')
+
+    plt.figure()
+    for i in range(6):
+        c, function = angle_function(q_1, q_2, e[i, :], 1, 1)
+        ax = plt.subplot(2, 3, i + 1, projection="3d")
+        ang1 = np.linspace(0, 130, 500)
+        ang2 = np.linspace(0, 80, 500)
+        X, Y = np.meshgrid(ang1, ang2)
+        # X = X.flatten()
+        # Y = Y.flatten()
+        ax.plot_surface(X, Y, new_func(X, Y, i), cmap='rainbow')
+
+
+if __name__ == '__main__':
+    # deadlift_yuetian()
+
+    # plt.show()
 
     # # x1: shoulder flextion/extension angle
     # # x2: elbow flextion/extension angle
@@ -505,9 +599,30 @@ if __name__ == '__main__':
     # m4 = [-2.37691947e-03, 7.78713575e-05, 5.35114834e-05, 5.08632500e-08, -8.37050041e-07, -6.00804626e-08]
     # m5 = [-1.01442551e-01, 1.47043898e-03, 1.56184263e-03, -3.23510388e-06, -1.43861358e-05, -1.25572653e-06]
     # m6 = [-1.07357358e-03, 1.15538266e-04, 2.14702498e-04, -7.47505564e-07, -1.02141327e-07, -2.59922512e-06]
-    # m = [m1, m2, m3, m4, m5, m6]
-    # # w1 and w2 is related to the people and the motion.
-    # # w1 * x1 + w2 * x2 is around 100.
-    # w1 = 1
-    # w2 = 1
-    # act = m[i][0] + m[i][1] * x1 * w1 + m[i][2] * x2 * w2 + m[i][3] * x1 ** 2 + m[i][4] * x1 * x2 + m[i][5] * x2 ** 2
+
+    m = [[2.39143515e-02, -3.04760316e-04, 1.12571905e-03, -7.72324530e-06, 4.09345784e-05, -5.45372943e-05],
+         [1.65120025e-02, 3.23591139e-03, 1.59817010e-03, -5.64813163e-05, 1.72556414e-04, -1.99607911e-04],
+         [-3.53273111e-03, 1.61506178e-03, 4.19356081e-03, -3.73600143e-05, 1.30932619e-04, -1.98477030e-04],
+         [-1.27473005e-02, 2.32431698e-03, 7.52763687e-03, -6.38299366e-05, 1.86197866e-04, -2.68857612e-04],
+         [1.05227573e-02, -4.36577687e-05, 1.10565988e-03, -1.03800756e-05, 4.20161018e-05, -4.55842636e-05],
+         [-2.26217954e-02, -3.75512215e-04, 5.75974586e-03, -5.38974355e-05, 2.27451771e-04, -2.46057174e-04],
+         [-1.80850017e-02, 2.07655842e-03, 2.25215398e-03, -3.03300184e-05, 7.09723443e-05, -1.00875538e-04],
+         [-5.79915645e-02, 8.38150778e-04, 6.46074882e-03, -2.32371240e-05, 1.13472730e-04, -1.88573789e-04],
+         [-7.21536503e-02, 8.14427689e-03, 3.16312329e-03, -8.09717381e-05, 1.51993754e-04, -2.37976964e-04],
+         [-3.16839780e-02, 5.93574143e-03, 2.71470471e-03, -9.87224135e-05, 2.49009181e-04, -2.90078593e-04],
+         [1.79046421e-02, 3.04549037e-03, 7.07757681e-03, -8.89327626e-05, 2.69459336e-04, -3.56789595e-04],
+         [-5.42379893e-03, 3.22800863e-03, 5.48023549e-03, -7.10426084e-05, 1.95591337e-04, -2.55520098e-04],
+         [-2.29667407e-01, 8.86858208e-03, 1.64536883e-02, -1.12149877e-04, 2.20951349e-04, -4.40681813e-04],
+         [-2.09985184e-01, 4.09904858e-03, 1.60305670e-02, -9.30262298e-05, 2.99773491e-04, -4.79913194e-04],
+         [-1.98342719e-02, -6.99683040e-04, 3.46112995e-03, -3.87014601e-05, 1.98759262e-04, -1.77993923e-04],
+         [-2.53127609e-02, 2.03448297e-03, 3.77307591e-03, -5.97754084e-05, 1.91171802e-04, -2.10916063e-04],
+         [-4.94494880e-02, 3.28294215e-03, 5.79037580e-03, -8.73302735e-05, 2.62347145e-04, -3.02242308e-04],
+         [1.89293401e-02, -3.60671479e-04, -1.61374809e-04, 4.55957310e-06, 1.63040022e-05, -5.31534811e-06],
+         [-1.23926566e-02, 4.18773637e-03, 2.43550141e-03, -8.84734560e-05, 2.41207703e-04, -2.34083773e-04],
+         [2.54155085e-01, 1.40833780e-02, -2.66909316e-02, -5.88011456e-05, -9.13563325e-05, 3.83919582e-04]]
+    m = np.asarray(m)
+    # w1 and w2 is related to the people and the motion.
+    # w1 * x1 + w2 * x2 is around 100.
+    w1 = 1
+    w2 = 1
+    act = m[i][0] + m[i][1] * x1 * w1 + m[i][2] * x2 * w2 + m[i][3] * x1 ** 2 + m[i][4] * x1 * x2 + m[i][5] * x2 ** 2

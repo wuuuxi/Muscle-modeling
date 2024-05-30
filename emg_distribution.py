@@ -28,6 +28,18 @@ def emg_file_progressing(emg, fs=1000, people=None, sport='biceps_curl'):
         emg_list = np.asarray([emg_BIC, emg_TRI, emg_ANT, emg_POS, emg_PEC, emg_LAT])
         t_list = np.asarray([t1, t2, t3, t4, t5, t6])
         return [emg_list, t_list]
+    elif sport == 'deadlift':
+        emg_rect_label = ['TA', 'GL', 'GM', 'VL', 'RF', 'VM', 'TFL', 'AddLong', 'ST', 'BF',
+                          'GMax', 'GMed', 'PM', 'IO', 'RA', 'ESI', 'Mul', 'EO', 'ESL', 'LD']
+        emg_list = []
+        t_list = []
+        for i in range(len(emg_rect_label)):
+            [emg_rect, t] = emg_rectification(emg[:, i + 1], fs, emg_rect_label[i], people, left)
+            emg_list.append(emg_rect)
+            t_list.append(t)
+        emg_list = np.asarray(emg_list)
+        t_list = np.asarray(t_list)
+        return [emg_list, t_list]
 
 
 def calculate_emg_distribution():
@@ -1313,6 +1325,69 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
             [27.382, 28.165, 28.165, 29.015],
             [29.015, 30.048, 30.048, 30.982]
         ]
+    elif label == 'yt-dl-35kg':
+        rep = 6
+        file_folder = 'files/deadlift/yuetian/emg/'
+        files = [file_folder + 'test 2024_05_17 16_27_52.xlsx'] * rep
+        sport_label = 'deadlift'
+        people = 'yuetian'
+        t_delta_emg = [0] * rep
+        t_delta_joi = [0] * rep
+        timestep_emg = [
+            [7.649, 8.949, 8.949, 10.532],
+            [11.149, 12.333, 12.333, 14.099],
+            [14.632, 15.665, 15.666, 17.215],
+            [17.799, 18.898, 18.898, 20.566],
+            [20.933, 21.933, 21.933, 23.366],
+            [23.933, 25.049, 25.049, 26.132]
+        ]
+    elif label == 'yt-dl-65kg':
+        rep = 5
+        file_folder = 'files/deadlift/yuetian/emg/'
+        files = [file_folder + 'test 2024_05_17 16_37_38.xlsx'] * rep
+        sport_label = 'deadlift'
+        people = 'yuetian'
+        t_delta_emg = [0] * rep
+        t_delta_joi = [0] * rep
+        timestep_emg = [
+            [7.266, 8.166, 8.166, 9.316],
+            [10.616, 11.466, 11.466, 12.732],
+            [13.782, 14.466, 14.466, 15.682],
+            [16.615, 17.399, 17.399, 18.349],
+            [19.282, 20.039, 20.039, 21.049]
+        ]
+    elif label == 'yt-dl-75kg':
+        rep = 6
+        file_folder = 'files/deadlift/yuetian/emg/'
+        files = [file_folder + 'test 2024_05_17 16_41_21.xlsx'] * rep
+        sport_label = 'deadlift'
+        people = 'yuetian'
+        t_delta_emg = [0] * rep
+        t_delta_joi = [0] * rep
+        timestep_emg = [
+            [6.566, 7.283, 7.283, 8.333],
+            [9.133, 9.789, 9.789, 10.766],
+            [11.483, 12.099, 12.099, 13.149],
+            [13.916, 14.536, 14.536, 15.565],
+            [16.199, 16.966, 16.966, 17.816],
+            [18.482, 19.032, 19.032, 20.065]
+        ]
+    elif label == 'yt-dl-all':
+        rep = 6
+        file_folder = 'files/deadlift/yuetian/emg/'
+        files = [file_folder + 'test 2024_05_17 16_41_21.xlsx'] * rep
+        sport_label = 'deadlift'
+        people = 'yuetian'
+        t_delta_emg = [0] * rep
+        t_delta_joi = [0] * rep
+        timestep_emg = [
+            [6.566, 7.283, 7.283, 8.333],
+            [9.133, 9.789, 9.789, 10.766],
+            [11.483, 12.099, 12.099, 13.149],
+            [13.916, 14.536, 14.536, 15.565],
+            [16.199, 16.966, 16.966, 17.816],
+            [18.482, 19.032, 19.032, 20.065]
+        ]
     else:
         print('No label:', label)
         return 0
@@ -1325,7 +1400,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         [emg_all[i], t_emg_all[i]] = emg_file_progressing(emg_all[i], fs, people, sport_label)
         t_emg_all[i] = t_emg_all[i] - t_delta_emg[i] + t_delta_joi[i]
 
-    if sport_label == 'bench_press':
+    if sport_label == 'bench_press' or sport_label == 'deadlift':
         muscles = [[([]) for _ in range(len(measured_muscle_idx))] for _ in range(data_set_number)]  # number of muscle
     for k in range(data_set_number):
         for j in range(len(measured_muscle_idx)):
@@ -1343,20 +1418,32 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         for i in range(data_set_number):
             data[k].append(np.concatenate([muscles[i, k, 0, :], muscles[i, k, 1, :]]))
 
-    if need_all_muscle is True:
-        if elbow_muscle is True:
-            allk = [11, 3, 3, 7, 5, 5]
-            alli = [6, 17, 20, 23, 30, 35]
-            allc = [0, 1, 2, 3, 4, 5]
-        else:
-            allk = [3, 3, 7, 5, 5]
-            alli = [6, 9, 12, 19, 24]
-            allc = [1, 2, 3, 4, 5]
-        for i in range(len(allk)):
-            for k in range(allk[i]):
-                idx = alli[i]
-                conum = allc[i]
-                data[idx + k] = data[conum]
+    if sport_label == 'bench_press':
+        if need_all_muscle is True:
+            if elbow_muscle is True:
+                allk = [11, 3, 3, 7, 5, 5]
+                alli = [6, 17, 20, 23, 30, 35]
+                allc = [0, 1, 2, 3, 4, 5]
+            else:
+                allk = [3, 3, 7, 5, 5]
+                alli = [6, 9, 12, 19, 24]
+                allc = [1, 2, 3, 4, 5]
+            for i in range(len(allk)):
+                for k in range(allk[i]):
+                    idx = alli[i]
+                    conum = allc[i]
+                    data[idx + k] = data[conum]
+    elif sport_label == 'deadlift':
+        if need_all_muscle is True:
+            allk = [0] * 9 + [1, 2, 2, 21, 5, 1, 23, 49, 11, 39, 9]
+            alli = [20] * 9 + [20, 21, 23, 25, 46, 51, 52, 75, 124, 135, 174]
+            allc = list(range(20))
+            for i in range(len(allk)):
+                for k in range(allk[i]):
+                    idx = alli[i]
+                    conum = allc[i]
+                    data[idx + k] = data[conum]
+
         # if elbow_muscle is True:
         #     a1, a2 = elbow_emg(data[0], data[1])
         #     for j in range(3):
@@ -1397,18 +1484,30 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
     #         a1, a2 = elbow_emg(emg1, emg2)
 
     color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-    # if sport_label == 'bench_press':
-    #     plt.figure(figsize=(6, 7.7))
-    #     for j in range(len(measured_muscle_idx)):
-    #         plt.subplot(len(measured_muscle_idx), 1, j + 1)
-    #         for i in range(data.shape[1]):
-    #             plt.plot(data[j, i, :], color=color[i % len(color)])
-    #         plt.ylabel(musc_label[j], weight='bold')
-    #         if j != len(measured_muscle_idx) - 1:
-    #             ax = plt.gca()
-    #             ax.axes.xaxis.set_visible(False)
-    # num = num + 1
-    # plt.savefig('emg_{}.png'.format(num))
+    if sport_label == 'bench_press':
+        plt.figure(figsize=(6, 7.7))
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(len(measured_muscle_idx), 1, j + 1)
+            for i in range(data.shape[1]):
+                plt.plot(data[j, i, :], color=color[i % len(color)])
+            plt.ylabel(musc_label[j], weight='bold')
+            if j != len(measured_muscle_idx) - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_visible(False)
+        num = num + 1
+        plt.savefig('emg_{}.png'.format(num))
+    elif sport_label == 'deadlift':
+        plt.figure(figsize=(10, 7.7))
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(round(len(measured_muscle_idx) / 2), 2, j + 1)
+            for i in range(data.shape[1]):
+                plt.plot(data[j, i, :], color=color[i % len(color)])
+            plt.ylabel(musc_label[j], weight='bold')
+            if j != len(measured_muscle_idx) - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_visible(False)
+        num = num + 1
+        plt.savefig('emg_{}.png'.format(num))
 
     if sport_label == 'bench_press':
         plt.figure(figsize=(6, 7.7))
@@ -1420,8 +1519,20 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
                 ax = plt.gca()
                 ax.axes.xaxis.set_visible(False)
         plt.xlabel('timestep', weight='bold')
-    num = num + 1
-    plt.savefig('emg_{}.png'.format(num))
+        num = num + 1
+        plt.savefig('emg_{}.png'.format(num))
+    elif sport_label == 'deadlift':
+        plt.figure(figsize=(10, 7.7))
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(round(len(measured_muscle_idx) / 2), 2, j + 1)
+            plt.errorbar(range(data_mean.shape[1]), data_mean[j], 2 * data_std[j])
+            plt.ylabel(musc_label[j], weight='bold')
+            if j != len(measured_muscle_idx) - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_visible(False)
+        plt.xlabel('timestep', weight='bold')
+        num = num + 1
+        plt.savefig('emg_{}.png'.format(num))
 
     if sport_label == 'bench_press':
         plt.figure(figsize=(6, 7.7))
@@ -1435,8 +1546,22 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
                 ax = plt.gca()
                 ax.axes.xaxis.set_visible(False)
         plt.xlabel('timestep', weight='bold')
-    num = num + 1
-    plt.savefig('emg_{}.png'.format(num))
+        num = num + 1
+        plt.savefig('emg_{}.png'.format(num))
+    elif sport_label == 'deadlift':
+        plt.figure(figsize=(10, 7.7))
+        for j in range(len(measured_muscle_idx)):
+            plt.subplot(round(len(measured_muscle_idx) / 2), 2, j + 1)
+            plt.errorbar(range(data_mean.shape[1]), data_mean[j], 2 * data_std[j], color='papayawhip')
+            for i in range(data.shape[1]):
+                plt.plot(data[j, i, :], color=color[i % len(color)])
+            plt.ylabel(musc_label[j], weight='bold')
+            if j != len(measured_muscle_idx) - 1:
+                ax = plt.gca()
+                ax.axes.xaxis.set_visible(False)
+        plt.xlabel('timestep', weight='bold')
+        num = num + 1
+        plt.savefig('emg_{}.png'.format(num))
 
     # if need_all_muscle is True and elbow_muscle is True:
     #     m = ['Brachialis', 'Brachiorad', 'Biceps', 'Triceps']
@@ -1484,6 +1609,21 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         np.save(file_folder + 'std_all', data_std)
         np.save(file_folder + 'trend_u_all', data_trend_u)
         np.save(file_folder + 'trend_d_all', data_trend_d)
+    elif label == 'yt-dl-35kg':
+        np.save(file_folder + 'mean_dl_35kg', data_mean)
+        np.save(file_folder + 'std_dl_35kg', data_std)
+        np.save(file_folder + 'trend_u_dl_35kg', data_trend_u)
+        np.save(file_folder + 'trend_d_dl_35kg', data_trend_d)
+    elif label == 'yt-dl-65kg':
+        np.save(file_folder + 'mean_dl_65kg', data_mean)
+        np.save(file_folder + 'std_dl_65kg', data_std)
+        np.save(file_folder + 'trend_u_dl_65kg', data_trend_u)
+        np.save(file_folder + 'trend_d_dl_65kg', data_trend_d)
+    elif label == 'yt-dl-75kg':
+        np.save(file_folder + 'mean_dl_75kg', data_mean)
+        np.save(file_folder + 'std_dl_75kg', data_std)
+        np.save(file_folder + 'trend_u_dl_75kg', data_trend_u)
+        np.save(file_folder + 'trend_d_dl_75kg', data_trend_d)
 
 
 if __name__ == '__main__':
@@ -1493,7 +1633,7 @@ if __name__ == '__main__':
     # calculate_chenzui_emg_distribution(label='bp-5.5kg')
     # calculate_chenzui_emg_distribution(label='bp-4kg')
     # calculate_lizhuo_emg_distribution(label='1kg')
-    calculate_other_emg_distribution(label='yt-bp-all')
+    calculate_other_emg_distribution(label='yt-dl-75kg')
     # calculate_other_emg_distribution(label='yt-bp-20kg')
     # calculate_other_emg_distribution(label='yt-bp-30kg')
     # calculate_other_emg_distribution(label='yt-bp-40kg')

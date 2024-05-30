@@ -374,7 +374,7 @@ def plot_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, em
     if idx is None:
         idx = num
 
-    if sport_label == 'bench_press':
+    if sport_label == 'bench_press' or sport_label == 'deadlift':
         # plt.figure(figsize=(3.3, 7.7))
         # plt.subplots_adjust(left=0.225, right=0.935)
         if num == 0:
@@ -431,6 +431,98 @@ def plot_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, em
     print("calu torque rmse:\t", "{:.2f}".format(rmse2))
 
 
+def plot_result_dl(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c, idx=None):
+    torque1 = torque[:, 0]
+    torque2 = torque[:, 1]
+    torque3 = torque[:, 2]
+    calu_torque1 = calu_torque[0]
+    calu_torque2 = calu_torque[1]
+    calu_torque3 = calu_torque[2]
+    if include_state == 'lift and down':
+        len1 = target_len * 2
+        len2 = emg_lift_len * 2
+    else:
+        len1 = target_len
+        len2 = emg_lift_len
+    t1 = t[num * len1:(num + 1) * len1, 0]
+    t2 = t[num * len1:(num + 1) * len1, 1]
+    t3 = t[num * len1:(num + 1) * len1, 2]
+    r = r[:, num * len1:(num + 1) * len1]
+    emg = emg[:, num * len1:(num + 1) * len1]
+    time = time[num * len1:(num + 1) * len1]
+    torque1 = torque1[num * len1:(num + 1) * len1]
+    torque2 = torque2[num * len1:(num + 1) * len1]
+    torque3 = torque3[num * len1:(num + 1) * len1]
+    calu_torque1 = calu_torque1[num * len1:(num + 1) * len1]
+    calu_torque2 = calu_torque2[num * len1:(num + 1) * len1]
+    calu_torque3 = calu_torque3[num * len1:(num + 1) * len1]
+    emg_std_long = emg_std_long[:, num * len2:(num + 1) * len2]
+    emg_mean_long = emg_mean_long[:, num * len2:(num + 1) * len2]
+    time_long = resample_by_len(list(time), emg_mean_long.shape[1])
+    if idx is None:
+        idx = num
+
+    if sport_label == 'bench_press' or sport_label == 'deadlift':
+        # plt.figure(figsize=(3.3, 7.7))
+        # plt.subplots_adjust(left=0.225, right=0.935)
+        if num == 0:
+            plt.figure(figsize=(2.5, 6.7))
+            plt.subplots_adjust(left=0.285, right=0.985, top=0.990, bottom=0.075)
+        else:
+            plt.figure(figsize=(2.3, 6.7))
+            plt.subplots_adjust(left=0.225, right=0.985, top=0.990, bottom=0.075)
+        plt.subplot(9, 1, 1)
+        plt.plot(time, np.asarray(t1), label='optimization', linewidth=2)
+        plt.plot(time, torque1, label='measured', linewidth=2)
+        # plt.xlabel('time (s)')
+        if legend_label is True or num == 0:
+            plt.ylabel('torque1', weight='bold', size=10)
+        # plt.legend()
+        ax = plt.gca()
+        ax.set_xticklabels([])
+
+        plt.subplot(9, 1, 2)
+        plt.plot(time, np.asarray(t2), label='optimization', linewidth=2)
+        plt.plot(time, torque2, label='measured', linewidth=2)
+        if legend_label is True or num == 0:
+            plt.ylabel('torque2', weight='bold', size=10)
+        # plt.legend()
+        ax = plt.gca()
+        ax.set_xticklabels([])
+
+        plt.subplot(9, 1, 3)
+        plt.plot(time, np.asarray(t3), label='optimization', linewidth=2)
+        plt.plot(time, torque3, label='measured', linewidth=2)
+        if legend_label is True or num == 0:
+            plt.ylabel('torque3', weight='bold', size=10)
+        # plt.legend()
+        ax = plt.gca()
+        ax.set_xticklabels([])
+
+        for j in range(6):
+            plt.subplot(9, 1, j + 4)
+            if plot_distribution is True:
+                if mvc_is_variable is True:
+                    plt.errorbar(time_long, emg_mean_long[j, :] * c[j], 2 * emg_std_long[j, :] * c[j], label='emg',
+                                 color='lavender', zorder=1)
+                else:
+                    plt.errorbar(time_long, emg_mean_long[j, :], 2 * emg_std_long[j, :], label='emg', color='lavender',
+                                 zorder=1)
+            else:
+                plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
+            # plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)  # zhushi
+            plt.plot(time, np.asarray(r[j, :]), label='optimization', linewidth=2, zorder=2)
+            if legend_label is True or num == 0:
+                plt.ylabel(musc_label[j], weight='bold')
+            if j == 5:
+                plt.xlabel('time (s)')
+            else:
+                ax = plt.gca()
+                ax.set_xticklabels([])
+            # plt.legend()
+    plt.savefig('train_{}.png'.format(idx))
+
+
 def plot_all_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c):
     # rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
     # print("torque rmse:\t", "{:.2f}".format(rmse))
@@ -447,6 +539,26 @@ def plot_all_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long
     print("torque rmse2:\t", "{:.2f}".format(rmse2))
     for i in range(num):
         plot_result_bp(i, t1, t2, r, emg, time, torque1, torque2, emg_std_long, emg_mean_long, calu_torque1, calu_torque2, c)
+
+
+def plot_all_result_dl(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c=0):
+    rmse = np.sqrt(np.sum((np.asarray(t[:, 0]) - torque[:, 0]) ** 2
+                          + (np.asarray(t[:, 1]) - torque[:, 1]) ** 2
+                          + (np.asarray(t[:, 2]) - torque[:, 2]) ** 2) / len(torque[:, 0] + torque[:, 1]))
+    rmse1 = np.sqrt(np.sum((np.asarray(t[:, 0]) - torque[:, 0]) ** 2) / len(torque[:, 0]))
+    rmse2 = np.sqrt(np.sum((np.asarray(t[:, 1]) - torque[:, 1]) ** 2) / len(torque[:, 1]))
+    rmse3 = np.sqrt(np.sum((np.asarray(t[:, 2]) - torque[:, 2]) ** 2) / len(torque[:, 2]))
+    print("torque rmse:\t", "{:.2f}".format(rmse))
+    print("torque rmse1:\t", "{:.2f}".format(rmse1))
+    print("torque rmse2:\t", "{:.2f}".format(rmse2))
+    print("torque rmse3:\t", "{:.2f}".format(rmse3))
+    for i in range(num):
+        plot_result_dl(i, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c)
+
+
+def plot_all_result_squat(num, t, a, torque, emg, time, mean, std, idx=None):
+    for i in range(num):
+        plot_result_squat(i, t, a, torque, emg, time, mean, std, idx)
 
 
 def plot_all_result_one(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c):
