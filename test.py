@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import gekko
+import math
 from pyomo.environ import *
 from pyomo.opt import SolverFactory
 
@@ -13,168 +14,19 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
     else:
         len1 = target_len
         len2 = emg_lift_len
+    if sport_label == 'deadlift' and joint_idx == 'all':
+        emg = emg.T
     t = t[num * len1:(num + 1) * len1]
     r = r[:, num * len1:(num + 1) * len1]
     emg = emg[:, num * len1:(num + 1) * len1]
     time = time[num * len1:(num + 1) * len1]
     torque = torque[num * len1:(num + 1) * len1]
-    calu_torque = calu_torque[num * len1:(num + 1) * len1]
+    calu_torque = calu_torque[:, num * len1:(num + 1) * len1]
     emg_std_long = emg_std_long[:, num * len2:(num + 1) * len2]
     emg_mean_long = emg_mean_long[:, num * len2:(num + 1) * len2]
     time_long = resample_by_len(list(time), emg_mean_long.shape[1])
     if idx is None:
         idx = num
-    # if include_TRI is False:
-    #     plt.figure(figsize=(6, 7.7))
-    #     plt.subplot(411)
-    #     plt.plot(time, np.asarray(t)[num * 50:(num + 1) * 50], label='optimization', linewidth=2)
-    #     plt.plot(time, torque[num * 50:(num + 1) * 50], label='measured', linewidth=2)
-    #     # plt.xlabel('time (s)')
-    #     plt.ylabel('torque', weight='bold')
-    #     plt.legend()
-    #     rmse = np.sqrt(np.sum((np.asarray(t)[num * 50:(num + 1) * 50] - torque[num * 50:(num + 1) * 50]) ** 2) / len(
-    #         torque[num * 50:(num + 1) * 50]))
-    #     print("torque rmse", num, ":\t", "{:.2f}".format(rmse))
-    #
-    #     plt.subplot(412)
-    #     if plot_distribution is True:
-    #         if mvc_is_variable is True:
-    #             plt.errorbar(time_long, emg_mean_long[0, num * 1000:(num + 1) * 1000] * c[0],
-    #                          2 * emg_std_long[0, num * 1000:(num + 1) * 1000] * c[0],
-    #                          label='emg', color='lavender', zorder=1)
-    #         else:
-    #             plt.errorbar(time_long, emg_mean_long[0, num * 1000:(num + 1) * 1000],
-    #                          2 * emg_std_long[0, num * 1000:(num + 1) * 1000],
-    #                          label='emg', color='lavender', zorder=1)
-    #     else:
-    #         plt.plot(time, np.asarray(emg[0, num * 50:(num + 1) * 50]), label='emg', linewidth=2, zorder=3)
-    #     plt.plot(time, np.asarray(r[0, num * 50:(num + 1) * 50]), label='optimization', linewidth=2, zorder=2)
-    #     # plt.xlabel('time (s)')
-    #     plt.ylabel('bic_s_l', weight='bold')
-    #     plt.legend()
-    #
-    #     plt.subplot(413)
-    #     if plot_distribution is True:
-    #         if mvc_is_variable is True:
-    #             plt.errorbar(time_long, emg_mean_long[1, num * 1000:(num + 1) * 1000] * c[1],
-    #                          2 * emg_std_long[1, num * 1000:(num + 1) * 1000] * c[1],
-    #                          label='emg', color='lavender', zorder=1)
-    #         else:
-    #             plt.errorbar(time_long, emg_mean_long[1, num * 1000:(num + 1) * 1000],
-    #                          2 * emg_std_long[1, num * 1000:(num + 1) * 1000],
-    #                          label='emg', color='lavender', zorder=1)
-    #     else:
-    #         plt.plot(time, np.asarray(emg[1, num * 50:(num + 1) * 50]), label='emg', linewidth=2, zorder=3)
-    #     plt.plot(time, np.asarray(r[1, num * 50:(num + 1) * 50]), label='optimization', linewidth=2, zorder=2)
-    #     # plt.xlabel('time (s)')
-    #     plt.ylabel('brachialis_1_l', weight='bold')
-    #     plt.legend()
-    #
-    #     # plt.figure()
-    #     plt.subplot(414)
-    #     if plot_distribution is True:
-    #         if mvc_is_variable is True:
-    #             plt.errorbar(time_long, emg_mean_long[2, num * 1000:(num + 1) * 1000] * c[2],
-    #                          2 * emg_std_long[2, num * 1000:(num + 1) * 1000] * c[2],
-    #                          label='emg', color='lavender', zorder=1)
-    #         else:
-    #             plt.errorbar(time_long, emg_mean_long[2, num * 1000:(num + 1) * 1000],
-    #                          2 * emg_std_long[2, num * 1000:(num + 1) * 1000],
-    #                          label='emg', color='lavender', zorder=1)
-    #     else:
-    #         plt.plot(time, np.asarray(emg[2, num * 50:(num + 1) * 50]), label='emg', linewidth=2, zorder=3)
-    #     plt.plot(time, np.asarray(r[2, num * 50:(num + 1) * 50]), label='optimization', linewidth=2, zorder=2)
-    #     plt.xlabel('time (s)', weight='bold')
-    #     plt.ylabel('brachiorad_1_l', weight='bold')
-    #     plt.legend()
-    # else:
-    #     plt.figure(figsize=(6, 7.7))
-    #     plt.subplot(511)
-    #     plt.plot(time, np.asarray(t[num * 50:(num + 1) * 50]), label='optimization', linewidth=2)
-    #     plt.plot(time, torque[num * 50:(num + 1) * 50], label='measured', linewidth=2)
-    #     # plt.xlabel('time (s)')
-    #     plt.ylabel('torque', weight='bold')
-    #     plt.legend()
-    #     rmse = np.sqrt(np.sum((np.asarray(t[num * 50:(num + 1) * 50]) - torque[num * 50:(num + 1) * 50]) ** 2) / len(
-    #         torque[num * 50:(num + 1) * 50]))
-    #     print("torque rmse:\t", "{:.2f}".format(rmse))
-    #
-    #     plt.subplot(512)
-    #     if plot_distribution is True:
-    #         if mvc_is_variable is True:
-    #             plt.errorbar(time_long, emg_mean_long[0, num * 1000:(num + 1) * 1000] * c[0],
-    #                          2 * emg_std_long[0, num * 1000:(num + 1) * 1000] * c[0],
-    #                          label='emg', color='lavender', zorder=1)
-    #         else:
-    #             plt.errorbar(time_long, emg_mean_long[0, num * 1000:(num + 1) * 1000],
-    #                          2 * emg_std_long[0, num * 1000:(num + 1) * 1000],
-    #                          label='emg', color='lavender', zorder=1)
-    #     else:
-    #         plt.plot(time, np.asarray(emg[0, num * 50:(num + 1) * 50]), label='emg', linewidth=2, zorder=3)
-    #     plt.plot(time, np.asarray(r[0, num * 50:(num + 1) * 50]), label='optimization', linewidth=2, zorder=2)
-    #     # plt.xlabel('time (s)')
-    #     plt.ylabel('bic_s_l', weight='bold')
-    #     plt.legend()
-    #
-    #     plt.subplot(513)
-    #     if plot_distribution is True:
-    #         if mvc_is_variable is True:
-    #             plt.errorbar(time_long, emg_mean_long[1, num * 1000:(num + 1) * 1000] * c[1],
-    #                          2 * emg_std_long[1, num * 1000:(num + 1) * 1000] * c[1],
-    #                          label='emg', color='lavender', zorder=1)
-    #         else:
-    #             plt.errorbar(time_long, emg_mean_long[1, num * 1000:(num + 1) * 1000],
-    #                          2 * emg_std_long[1, num * 1000:(num + 1) * 1000],
-    #                          label='emg', color='lavender', zorder=1)
-    #     else:
-    #         plt.plot(time, np.asarray(emg[1, num * 50:(num + 1) * 50]), label='emg', linewidth=2, zorder=3)
-    #     plt.plot(time, np.asarray(r[1, num * 50:(num + 1) * 50]), label='optimization', linewidth=2, zorder=2)
-    #     # plt.xlabel('time (s)')
-    #     plt.ylabel('brachialis_1_l', weight='bold')
-    #     plt.legend()
-    #
-    #     # plt.figure()
-    #     plt.subplot(514)
-    #     if plot_distribution is True:
-    #         if mvc_is_variable is True:
-    #             plt.errorbar(time_long, emg_mean_long[2, num * 1000:(num + 1) * 1000] * c[2],
-    #                          2 * emg_std_long[2, num * 1000:(num + 1) * 1000] * c[2],
-    #                          label='emg', color='lavender', zorder=1)
-    #         else:
-    #             plt.errorbar(time_long, emg_mean_long[2, num * 1000:(num + 1) * 1000],
-    #                          2 * emg_std_long[2, num * 1000:(num + 1) * 1000],
-    #                          label='emg', color='lavender', zorder=1)
-    #     else:
-    #         plt.plot(time, np.asarray(emg[2, num * 50:(num + 1) * 50]), label='emg', linewidth=2, zorder=3)
-    #     plt.plot(time, np.asarray(r[2, num * 50:(num + 1) * 50]), label='optimization', linewidth=2, zorder=2)
-    #     plt.xlabel('time (s)', weight='bold')
-    #     plt.ylabel('brachiorad_1_l', weight='bold')
-    #
-    #     plt.subplot(515)
-    #     if plot_distribution is True:
-    #         if mvc_is_variable is True:
-    #             plt.errorbar(time_long, emg_mean_long[3, num * 1000:(num + 1) * 1000] * c[3],
-    #                          2 * emg_std_long[3, num * 1000:(num + 1) * 1000] * c[3],
-    #                          label='emg', color='lavender', zorder=1)
-    #         else:
-    #             plt.errorbar(time_long, emg_mean_long[3, num * 1000:(num + 1) * 1000],
-    #                          2 * emg_std_long[3, num * 1000:(num + 1) * 1000],
-    #                          label='emg', color='lavender', zorder=1)
-    #     else:
-    #         plt.plot(time, np.asarray(emg[3, num * 50:(num + 1) * 50]), label='emg', linewidth=2, zorder=3)
-    #     plt.plot(time, np.asarray(r[3, num * 50:(num + 1) * 50]), label='optimization', linewidth=2, zorder=2)
-    #     plt.xlabel('time (s)', weight='bold')
-    #     plt.ylabel('tri', weight='bold')
-    #     plt.legend()
-    #
-    # plt.figure(figsize=(6, 3.7))
-    # # plt.plot(time[num * 50:(num + 1) * 50], calu_torque[num * 50:(num + 1) * 50], label='calculated', linewidth=2)
-    # plt.plot(time, torque[num * 50:(num + 1) * 50], label='measured', linewidth=2)
-    # plt.xlabel('time (s)', weight='bold')
-    # plt.ylabel('torque', weight='bold')
-    # plt.legend()
-    # rmse = np.sqrt(np.sum((np.asarray(calu_torque) - torque) ** 2) / len(torque))
-    # print("torque rmse:\t", "{:.2f}".format(rmse))
 
     if sport_label == 'biceps_curl':
         if include_TRI is False:
@@ -340,16 +192,82 @@ def plot_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_
                 ax = plt.gca()
                 ax.axes.xaxis.set_visible(False)
             # plt.legend()
+    elif sport_label == 'deadlift':
+        if joint_idx == 'all':
+            plt.figure(figsize=(8, 7.7))
+            plt.subplots_adjust(left=0.090, right=0.990, top=0.970, bottom=0.065, wspace=0.350)
+            plot_muscle_num = len(measured_muscle_idx)
+            joint_include = ['waist', 'hip', 'knee']
+            for k in range(3):
+                plt.subplot(math.ceil(plot_muscle_num / 3 + 1), 3, k + 1)
+                plt.plot(time, np.asarray(t[:, k]), label='optimization', linewidth=2)
+                plt.plot(time, torque[:, k], label='measured', linewidth=2)
+                # plt.plot(time, calu_torque[k, :], label='calculate', linewidth=2)
+                plt.ylabel(joint_include[k], weight='bold', size=10)
+                ax = plt.gca()
+                ax.set_xticklabels([])
+                # ax.axes.xaxis.set_visible(False)
+                rmse = np.sqrt(np.sum((np.asarray(t[:, k]) - torque[:, k]) ** 2) / len(torque[:, k]))
+                print("torque rmse", joint_include[k], ":\t", "{:.2f}".format(rmse))
+                rmse = np.sqrt(np.sum((calu_torque[k, :] - torque[:, k]) ** 2) / len(torque[:, k]))
+                print("torque rmse", joint_include[k], ":\t", "{:.2f}".format(rmse))
+            rmse = np.sqrt(np.sum((calu_torque.T - torque) ** 2) / torque.size)
+            print("torque rmse:\t", "{:.2f}".format(rmse))
+            for j in range(plot_muscle_num):
+                plt.subplot(math.ceil(plot_muscle_num / 3 + 1), 3, j + 4)
+                plt.plot(time, np.asarray(r[j, :]), label='optimization', linewidth=2, zorder=2)
+                # plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
+                if plot_distribution is True:
+                        plt.errorbar(time_long, emg_mean_long[j, :], 2 * emg_std_long[j, :], label='emg',
+                                     color='lavender', zorder=1)
+                else:
+                    plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
+                plt.ylabel(musc_label[j], weight='bold')
+                if j >= plot_muscle_num - len(joint_include):
+                    plt.xlabel('time (s)')
+                else:
+                    ax = plt.gca()
+                    ax.set_xticklabels([])
+                # plt.legend()
+        else:
+            # plt.figure(figsize=(6, 7.7))
+            plt.figure(figsize=(3.3, 7.7))
+            plot_muscle_num = len(measured_muscle_idx)
+            plt.subplot(plot_muscle_num + 1, 1, 1)
+            plt.plot(time, np.asarray(t), label='optimization', linewidth=2)
+            plt.plot(time, torque, label='measured', linewidth=2)
+            plt.plot(time, calu_torque, label='calculate', linewidth=2)
+            plt.subplots_adjust(left=0.225, right=0.935)
+            # plt.xlabel('time (s)')
+            plt.ylabel('torque', weight='bold', size=10)
+            # plt.legend()
+            ax = plt.gca()
+            ax.axes.xaxis.set_visible(False)
+            rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
+            print("torque rmse", idx, ":\t", "{:.2f}".format(rmse))
+            for j in range(plot_muscle_num):
+                plt.subplot(plot_muscle_num + 1, 1, j + 2)
+                if plot_distribution is True:
+                    if mvc_is_variable is True:
+                        plt.errorbar(time_long, emg_mean_long[j, :] * c[j], 2 * emg_std_long[j, :] * c[j], label='emg',
+                                     color='lavender', zorder=1)
+                    else:
+                        plt.errorbar(time_long, emg_mean_long[j, :], 2 * emg_std_long[j, :], label='emg', color='lavender',
+                                     zorder=1)
+                else:
+                    plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
+                # plt.plot(time, np.asarray(emg[j]), label='emg', linewidth=2, zorder=3)
+                plt.plot(time, np.asarray(r[j, :]), label='optimization', linewidth=2, zorder=2)
+                plt.ylabel(musc_label[j], weight='bold')
+                if j == plot_muscle_num - 1:
+                    plt.xlabel('time (s)')
+                else:
+                    ax = plt.gca()
+                    ax.axes.xaxis.set_visible(False)
+                # plt.legend()
+            rmse = np.sqrt(np.sum((np.asarray(calu_torque) - torque) ** 2) / len(torque))
+            print("torque rmse:\t", "{:.2f}".format(rmse))
     plt.savefig('train_{}.png'.format(idx))
-
-    # plt.figure(figsize=(6, 3.7))
-    # plt.plot(time, calu_torque, label='calculated', linewidth=2)
-    # plt.plot(time, torque, label='measured', linewidth=2)
-    # plt.xlabel('time (s)', weight='bold')
-    # plt.ylabel('torque', weight='bold')
-    # plt.legend()
-    rmse = np.sqrt(np.sum((np.asarray(calu_torque) - torque) ** 2) / len(torque))
-    print("torque rmse:\t", "{:.2f}".format(rmse))
 
 
 def plot_result_bp(num, t1, t2, r, emg, time, torque1, torque2, emg_std_long, emg_mean_long, calu_torque1, calu_torque2, c, idx=None):
@@ -523,7 +441,7 @@ def plot_result_dl(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, ca
     plt.savefig('train_{}.png'.format(idx))
 
 
-def plot_all_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c):
+def plot_all_result(num, t, r, emg, time, torque, emg_std_long, emg_mean_long, calu_torque, c=0):
     # rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
     # print("torque rmse:\t", "{:.2f}".format(rmse))
     for i in range(num):
@@ -932,54 +850,138 @@ def test_optimization_emg_bp(num, y, torque1, torque2, time, emg_mean_long, emg_
     # plt.xlabel('Time(s)', weight='bold')
 
 
-def application(label, y_r):
-    if label == 'zhuo-left-1kg':
-        idx = ['3', '4', '6', '7', '9']
-    elif label == 'chenzui-left-all-2.5kg':
-        idx = ['5', '6', '7', '8', '9']
-    elif label == 'chenzui-left-all-3kg':
-        idx = ['10', '11', '12', '13', '14']
-    elif label == 'chenzui-left-all-4kg':
-        idx = ['15', '16', '17']
-    elif label == 'chenzui-left-all-6.5kg':
-        idx = ['18', '19', '20', '21', '22']
-    elif label == 'bp-chenzui-left-4kg':
-        idx = ['1', '2', '3', '4', '5', '6']
-    # elif label == 'bp-chenzui-left-5.5kg' or label == 'bp-chenzui-left-6.5kg':
-    #     idx = ['6', '7', '8']
-    elif label == 'bp-chenzui-left-5.5kg':
-        idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-    elif label == 'bp-chenzui-left-6.5kg':
-        idx = ['1', '2', '3', '4', '5', '6', '7', '8']
-    elif label == 'bp-chenzui-left-7kg':
-        idx = ['1', '2', '3', '4', '5', '6']
-    elif label == 'bp-chenzui-left-9.5kg':
-        idx = ['1', '2', '3', '4', '5', '6', '7']
-    elif label == 'bp-zhuo-right-3kg':
-        idx = ['4', '5', '6']
-    elif label == 'bp-zhuo-right-4kg':
-        idx = ['1', '2', '3', '4', '5', '6']
-    elif label == 'bp-yuetian-right-20kg':
-        idx = ['1', '2', '3', '4', '5', '6']
-    elif label == 'bp-yuetian-right-30kg':
-        idx = ['1', '2', '3', '4', '5', '6']
-    elif label == 'bp-yuetian-right-40kg':
-        idx = ['1', '2', '3', '4', '5', '6']
-    elif label == 'bp-yuetian-right-50kg':
-        idx = ['1', '2', '3', '4', '5', '6']
-    elif label == 'bp-yuetian-right-60kg':
-        idx = ['1', '2', '3', '4', '5', '6']
+def test_optimization_emg_dl(num, y, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std, trend_u, trend_d):
+    time_long = resample_by_len(list(time), emg_mean_long.shape[1])
 
-    else:
-        print('No such label!')
-        return 0
+    shape0 = arm.shape[0]
+    shape1 = arm.shape[1]
+    shape2 = arm.shape[2]
+
+    # 创建一个具体的模型
+    model = ConcreteModel()
+    model.I = RangeSet(0, shape0 - 1)
+    model.J = RangeSet(0, shape1 - 1)
+    model.K = RangeSet(0, shape2 - 1)
+
+    # 定义变量
+    model.x = Var(model.I, model.J, within=NonNegativeReals)  # activation
+    # model.c = Var(model.I, within=NonNegativeReals)  # MVC emg
+    model.f = Var(model.I, model.J, within=Reals)  # muscle force
+    model.t = Var(model.J, model.K, within=Reals)  # torque
+
+    # 定义约束条件
+    model.constr = ConstraintList()
+    for j in model.J:
+        for i in model.I:
+            # model.constr.add(model.x[i, j + 1] >= model.x[i, j] + target_len/emg_lift_len*5*trend_d[i][j])
+            # model.constr.add(model.x[i, j + 1] <= model.x[i, j] + target_len/emg_lift_len*5*trend_u[i][j])
+            model.constr.add(model.x[i, j] >= emg_mean[i, j] - emg_std[i, j] * 2.5)
+            model.constr.add(model.x[i, j] <= emg_mean[i, j] + emg_std[i, j] * 2.5)
+            model.constr.add(model.x[i, j] >= 0)
+            model.constr.add(model.x[i, j] <= 1)
+            model.constr.add(model.f[i, j] == model.x[i, j] * y[i])  # muscle force
+        for k in range(shape2):
+            model.constr.add(model.t[j, k] == sum(arm[i, j, k] * model.f[i, j] for i in model.I))  # torque
+
+    # objective function
+    obj = sum((sum((model.t[j, k] - torque[j, k]) ** 2 for j in model.J) / shape1) for k in model.K)
+    model.obj = Objective(expr=obj, sense=minimize)
+
+    # 求解器
+    solver = SolverFactory('ipopt')
+    solver.solve(model)
+
+    c = np.ones_like(emg)
+    e = np.ones_like(torque)
+    for i in model.I:
+        for j in model.J:
+            c[i, j] = value(model.x[i, j])
+    for j in model.J:
+        for k in model.K:
+            e[j, k] = value(model.t[j, k])
+    act = np.asarray(c)
+    tor = np.asarray(e)
+
+    plt.figure(figsize=(8, 7.7))
+    plt.subplots_adjust(left=0.090, right=0.990, top=0.970, bottom=0.065, wspace=0.350)
+    plot_muscle_num = len(measured_muscle_idx)
+    joint_include = ['waist', 'hip', 'knee']
+    for k in range(3):
+        plt.subplot(math.ceil(plot_muscle_num / 3 + 1), 3, k + 1)
+        plt.plot(time, tor[:, k], label='optimization', linewidth=2)
+        plt.plot(time, torque[:, k], label='measured', linewidth=2)
+        # plt.plot(time, calu_torque[k, :], label='calculate', linewidth=2)
+        if legend_label is True:
+            plt.ylabel(joint_include[k], weight='bold', size=10)
+        ax = plt.gca()
+        ax.set_xticklabels([])
+        # ax.axes.xaxis.set_visible(False)
+        rmse = np.sqrt(np.sum((tor[:, k] - torque[:, k]) ** 2) / len(torque[:, k]))
+        print("torque rmse", joint_include[k], ":\t", "{:.2f}".format(rmse))
+    rmse = np.sqrt(np.sum((tor - torque) ** 2) / torque.size)
+    print("torque rmse:\t", "{:.2f}".format(rmse))
+    rmse_emg = np.sqrt(np.sum((act - emg) ** 2) / emg.size)
+    print("emg rmse:\t", "{:.2f}".format(rmse_emg))
+    for j in range(plot_muscle_num):
+        plt.subplot(math.ceil(plot_muscle_num / 3 + 1), 3, j + 4)
+        plt.errorbar(time_long, emg_mean_long[j, :], 2 * emg_std_long[j, :], label='emg', color='lavender', zorder=1)
+        plt.plot(time, act[j, :], label='optimization', linewidth=2, zorder=2, color='#1f77b4')
+        plt.plot(time, emg[j, :], label='emg', linewidth=2, zorder=3, color='#ff7f0e')
+        plt.ylabel(musc_label[j], weight='bold')
+        if j >= plot_muscle_num - len(joint_include):
+            plt.xlabel('time (s)')
+        else:
+            ax = plt.gca()
+            ax.set_xticklabels([])
+        # plt.legend()
+    plt.savefig('test_{}.png'.format(num))
+
+
+def application(label, fmax, idx):
+    if idx is None:
+        if label == 'zhuo-left-1kg':
+            idx = ['3', '4', '6', '7', '9']
+        elif label == 'chenzui-left-all-2.5kg':
+            idx = ['5', '6', '7', '8', '9']
+        elif label == 'chenzui-left-all-3kg':
+            idx = ['10', '11', '12', '13', '14']
+        elif label == 'chenzui-left-all-4kg':
+            idx = ['15', '16', '17']
+        elif label == 'chenzui-left-all-6.5kg':
+            idx = ['18', '19', '20', '21', '22']
+        elif label == 'bp-chenzui-left-4kg':
+            idx = ['1', '2', '3', '4', '5', '6']
+        # elif label == 'bp-chenzui-left-5.5kg' or label == 'bp-chenzui-left-6.5kg':
+        #     idx = ['6', '7', '8']
+        elif label == 'bp-chenzui-left-5.5kg':
+            idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+        elif label == 'bp-chenzui-left-6.5kg':
+            idx = ['1', '2', '3', '4', '5', '6', '7', '8']
+        elif label == 'bp-chenzui-left-7kg':
+            idx = ['1', '2', '3', '4', '5', '6']
+        elif label == 'bp-chenzui-left-9.5kg':
+            idx = ['1', '2', '3', '4', '5', '6', '7']
+        elif label == 'bp-zhuo-right-3kg':
+            idx = ['4', '5', '6']
+        elif label == 'bp-zhuo-right-4kg':
+            idx = ['1', '2', '3', '4', '5', '6']
+        elif label == 'bp-yuetian-right-20kg':
+            idx = ['1', '2', '3', '4', '5', '6']
+        elif label == 'bp-yuetian-right-30kg':
+            idx = ['1', '2', '3', '4', '5', '6']
+        elif label == 'bp-yuetian-right-40kg':
+            idx = ['1', '2', '3', '4', '5', '6']
+        elif label == 'bp-yuetian-right-50kg':
+            idx = ['1', '2', '3', '4', '5', '6']
+        elif label == 'bp-yuetian-right-60kg':
+            idx = ['1', '2', '3', '4', '5', '6']
     if sport_label == 'biceps_curl':
         for i in range(len(idx)):
             emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
                 = read_realted_files(label=label, idx=idx[i])
-            test_optimization_emg(i, y_r, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std,
+            test_optimization_emg(i, fmax, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std,
                                   emg_trend_u, emg_trend_d)
-    else:
+    elif sport_label == 'bench_press':
         for i in range(len(idx)):
             # emg_mean, emg_std, arm1, arm2, torque1, torque2, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
             #     = read_realted_files_bp(label=label, idx=idx[i])
@@ -988,41 +990,30 @@ def application(label, y_r):
             # test_optimization_emg_bp(i, y_r, o1['torque1'] * 0.8, o1['torque2'] * 0.8, o1['time'], o1['emg_mean_long'],
             #                          o1['emg_std_long'], o1['arm1'], o1['arm2'], o['emg'], o1['emg_mean'], o1['emg_std'],
             #                          o1['trend_u'], o1['trend_d'])
-            test_optimization_emg_bp(i, y_r, o['torque1'], o['torque2'], o['time'], o['emg_mean_long'],
+            test_optimization_emg_bp(i, max, o['torque1'], o['torque2'], o['time'], o['emg_mean_long'],
                                      o['emg_std_long'], o['arm1'], o['arm2'], o['emg'], o['emg_mean'], o['emg_std'],
                                      o['trend_u'], o['trend_d'])
-        # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-        #     = read_realted_files(label=label, idx=idx[i], include_state='lift')
-        # test_optimization_emg(i, y_r, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std,
-        #                       emg_trend_u, emg_trend_d)
-        # emg_mean, emg_std, arm, torque, time, emg_mean_long, emg_std_long, emg, time_emg, emg_trend_u, emg_trend_d \
-        #     = read_realted_files(label=label, idx=idx[i], include_state='down')
-        # test_optimization_emg(i, y_r, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std,
-        #                       emg_trend_u, emg_trend_d)
-    # emg_mean1, emg_std1, arm1, torque1, time1, emg_mean_long1, emg_std_long1, emg1, time_emg1, emg_trend_u1, emg_trend_d1 \
-    #     = read_realted_files(label=label, idx=idx[0])
-    # emg_mean2, emg_std2, arm2, torque2, time2, emg_mean_long2, emg_std_long2, emg2, time_emg2, emg_trend_u2, emg_trend_d2 \
-    #     = read_realted_files(label=label, idx=idx[1])
-    # emg_mean3, emg_std3, arm3, torque3, time3, emg_mean_long3, emg_std_long3, emg3, time_emg3, emg_trend_u3, emg_trend_d3 \
-    #     = read_realted_files(label=label, idx=idx[2])
-    # emg_mean4, emg_std4, arm4, torque4, time4, emg_mean_long4, emg_std_long4, emg4, time_emg4, emg_trend_u4, emg_trend_d4 \
-    #     = read_realted_files(label=label, idx=idx[3])
-    # emg_mean5, emg_std5, arm5, torque5, time5, emg_mean_long5, emg_std_long5, emg5, time_emg5, emg_trend_u5, emg_trend_d5 \
-    #     = read_realted_files(label=label, idx=idx[4])
-    # # emg_mean6, emg_std6, arm6, fa6, torque6, time6, emg_mean_long6, emg_std_long6, emg6, time_emg6 \
-    # #     = read_chenzui_realted_files(label='zhuo-9')
-    # test_optimization_emg(0, y_r, torque1, time1, emg_mean_long1, emg_std_long1, arm1, emg1, emg_mean1, emg_std1,
-    #                       emg_trend_u1, emg_trend_d1)
-    # test_optimization_emg(1, y_r, torque2, time2, emg_mean_long2, emg_std_long2, arm2, emg2, emg_mean2, emg_std2,
-    #                       emg_trend_u2, emg_trend_d2)
-    # test_optimization_emg(2, y_r, torque3, time3, emg_mean_long3, emg_std_long3, arm3, emg3, emg_mean3, emg_std3,
-    #                       emg_trend_u3, emg_trend_d3)
-    # test_optimization_emg(3, y_r, torque4, time4, emg_mean_long4, emg_std_long4, arm4, emg4, emg_mean4, emg_std4,
-    #                       emg_trend_u4, emg_trend_d4)
-    # test_optimization_emg(4, y_r, torque5, time5, emg_mean_long5, emg_std_long5, arm5, emg5, emg_mean5, emg_std5,
-    #                       emg_trend_u5, emg_trend_d5)
-    # # test_optimization_emg(5, y_r, torque6, time6, emg_mean_long6, emg_std_long6, arm6, emg6, emg_mean6, emg_std6,
-    # #                       emg_trend_u6, emg_trend_d6)
+    elif sport_label == 'deadlift':
+        if label == 'dl-yuetian-right-all':
+            labels = ['dl-yuetian-right-35kg', 'dl-yuetian-right-45kg', 'dl-yuetian-right-65kg', 'dl-yuetian-right-75kg']
+            idxs = [['2', '3', '5', '6'],
+                    ['1', '2', '3', '5'],
+                    ['1', '2', '3', '4', '5'],
+                    ['1', '2', '3', '4', '5', '6']]
+            for k in range(len(labels)):
+                label = labels[k]
+                idx = idxs[k]
+                print(label)
+                for i in range(len(idx)):
+                    o = read_groups_files(label, idx[i])
+                    test_optimization_emg_dl(i, fmax, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
+                                             o['arm'], o['emg'], o['emg_mean'], o['emg_std'], o['trend_u'],
+                                             o['trend_d'])
+        else:
+            for i in range(len(idx)):
+                o = read_groups_files(label, idx[i])
+                test_optimization_emg_dl(i, fmax, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
+                                         o['arm'], o['emg'], o['emg_mean'], o['emg_std'], o['trend_u'], o['trend_d'])
 
 
 if __name__ == '__main__':

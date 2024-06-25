@@ -1,12 +1,13 @@
 # muscle_number = 6
-muscle_number = 20
+muscle_number = 19
 left_or_right = 'right'
 # left_or_right = 'left'
 left = False
 # sport_label = 'biceps_curl'
 # sport_label = 'bench_press'
 sport_label = 'deadlift'
-joint_number = 3
+joint_idx = 'waist'
+date = '240604'
 
 iso1 = [100, 100, 10]
 iso2 = [6000, 6000, 3000]
@@ -26,8 +27,8 @@ mvc_is_variable = False
 plot_distribution = True
 # arm_constant = False
 arm_constant = True
-need_all_muscle = False
-legend_label = False
+need_all_muscle = True
+legend_label = True
 elbow_muscle = True
 
 muscle_LAT = True
