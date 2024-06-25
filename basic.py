@@ -112,7 +112,7 @@ elif sport_label == 'bench_press':
                 related_muscle_idx.append(running_sum)
                 running_sum += num
 
-elif sport_label == 'deadlift':
+elif sport_label == 'deadlift':19
     joint_num = {'waist': '1',
                  'hip': '2',
                  'knee': '3'}
