@@ -4,9 +4,9 @@ left_or_right = 'right'
 # left_or_right = 'left'
 left = False
 # sport_label = 'biceps_curl'
-# sport_label = 'bench_press'
-sport_label = 'deadlift'
-joint_idx = 'waist'
+sport_label = 'bench_press'
+# sport_label = 'deadlift'
+joint_idx = 'all'
 date = '240604'
 
 iso1 = [100, 100, 10]
@@ -25,8 +25,8 @@ torque_init_0 = False
 
 mvc_is_variable = False
 plot_distribution = True
-# arm_constant = False
-arm_constant = True
+arm_constant = False
+# arm_constant = True
 need_all_muscle = True
 legend_label = True
 elbow_muscle = True

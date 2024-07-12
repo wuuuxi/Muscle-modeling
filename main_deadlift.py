@@ -452,6 +452,7 @@ def optimization_pyomo(emg_mean, emg_std, arm, torque, time, emg):
 
     active_force = emg.T * y
     calu_torque = [sum(active_force[j, :] * arm[:, j]) for j in range(arm.shape[1])]
+    calu_torque = np.asarray(calu_torque)
 
     rmse = np.sqrt(np.sum((np.asarray(t) - torque) ** 2) / len(torque))
     print("torque rmse:\t", "{:.2f}".format(rmse))

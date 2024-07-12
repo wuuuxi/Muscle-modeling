@@ -32,14 +32,22 @@ if sport_label == 'biceps_curl':
         muscle_idx = ['BICsht', 'BRA', 'BRD', 'BIClon', 'TRIlon', 'TRIlat', 'TRImed']
         iso = [316.8, 1177.37, 276.0, 525.1, 771.8, 717.5, 717.5]
 elif sport_label == 'bench_press':
-    joint_num = {'elbow': '1',
-                 'shoulder': '2'}
-    musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed', 'DelPos', 'BicLon', 'BicSho', 'TriLon', 'TriLat',
-                  'Brachialis', 'Brachiorad', 'LD', 'TMaj', 'TMin', 'Inf', 'Sup', 'Cora']
+    joint_num = {'shoulder': '1',
+                 'elbow': '2'}
+    musc_label_all = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
+                      'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
+                      'BRA', 'BRD', 'LD', 'TerMaj', 'TerMin',
+                      'Infra', 'Supra', 'Cora']
+    measured_muscle_idx_all = ['pect_maj_c_1', 'pect_maj_t_5', 'pect_maj_t_1', 'delt_clav_1', 'delt_scap_5',
+                               'delt_scap_1', 'bic_l', 'bic_s', 'tric_long_1', 'tric_lat_1',
+                               'brachialis_1', 'brachiorad_1', 'LD_T10_l', 'ter_maj_1_l', 'ter_min_1_l',
+                               'infra_1', 'supra_1', 'coracobr_1']
+    iso_all = [179, 133, 125, 128, 120, 289, 347, 173, 223, 153, 314, 30, 27.6, 165, 172, 272, 120, 201]
     if joint_idx == 'all':
         if muscle_number == 6:
             if left_or_right == 'left':
-                muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l', 'LD_T10_l']
+                muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l',
+                              'LD_T10_l']
                 iso = [173.0, 223.0, 128.0, 286.0, 125.0, 27.6]
             else:
                 assert left_or_right == 'right'
@@ -59,7 +67,8 @@ elif sport_label == 'bench_press':
             if left_or_right == 'left':
                 measured_muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l',
                                        'LD_T10_l']
-                muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l', 'LD_T10_l',
+                muscle_idx = ['bic_s_l', 'tric_long_1_l', 'delt_clav_1_l', 'delt_scap_9_l', 'pect_maj_t_1_l',
+                              'LD_T10_l',
                               'bic_l_l', 'brachialis_1_l', 'brachialis_2_l', 'brachialis_3_l', 'brachialis_4_l',
                               'brachialis_5_l',
                               'brachialis_6_l', 'brachialis_7_l', 'brachiorad_1_l', 'brachiorad_2_l', 'brachiorad_3_l',
@@ -97,22 +106,98 @@ elif sport_label == 'bench_press':
                 related_muscle_idx.append(running_sum)
                 running_sum += num
         else:
-            measured_muscle_idx = ['tibant_r', 'gaslat_r', 'gasmed_r', 'vaslat_r', 'recfem_r',
-                                   'vasmed_r', 'tfl_r', 'addlong_r', 'semiten_r', 'bflh_r',
-                                   'glmax1_r', 'glmed1_r', 'Ps_L1_VB_r', 'IO1_r', 'rect_abd_r',
-                                   'IL_L1_r', 'MF_m1s_r', 'EO1_r']
+            musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
+                          'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
+                          'BRA', 'BRD', 'LD', 'Cora']
+            # muscle_idx = ['pect_maj_c_1', 'pect_maj_t_5', 'pect_maj_t_1', 'delt_clav_1', 'delt_scap_5',
+            #               'delt_scap_1', 'bic_l', 'bic_s', 'tric_long_1', 'tric_lat_1',
+            #               'brachialis_1', 'brachiorad_1', 'LD_T10_l', 'ter_maj_1_l', 'ter_min_1_l',
+            #               'infra_1', 'supra_1', 'coracobr_1',
+            #               'pect_maj_c_2',
+            #               'pect_maj_t_6',
+            #               'pect_maj_t_2', 'pect_maj_t_3', 'pect_maj_t_4',
+            #               'delt_clav_2', 'delt_clav_3', 'delt_clav_4',
+            #               'delt_scap_7', 'delt_scap_8', 'delt_scap_9', 'delt_scap_10', 'delt_scap_11',
+            #               'delt_scap_2', 'delt_scap_3', 'delt_scap_4', 'delt_scap_5',
+            #               'tric_long_2', 'tric_long_3', 'tric_long_4',
+            #               'tric_lat_2', 'tric_lat_3', 'tric_lat_4', 'tric_lat_5',
+            #               'brachialis_2', 'brachialis_3', 'brachialis_4', 'brachialis_5', 'brachialis_6',
+            #               'brachiorad_2', 'brachiorad_3',
+            #               'ter_maj_2_l', 'ter_maj_3_l', 'ter_maj_4_l',
+            #               'ter_min_2_l', 'ter_min_3_l',
+            #               'infra_2', 'infra_3', 'infra_4', 'infra_5', 'infra_6',
+            #               'supra_2', 'supra_3', 'supra_4',
+            #               'coracobr_2', 'coracobr_3']
+            measured_muscle_idx = []
+            iso = []
+            for m in musc_label:
+                i = musc_label_all.index(m)
+                measured_muscle_idx.append(measured_muscle_idx_all[i])
+                iso.append(iso_all[i])
             muscle_idx = measured_muscle_idx
-            iso = [5] * len(measured_muscle_idx)
             iso_min = np.asarray(iso) * 0.1
-            iso_max = np.asarray(iso) * 10
+            iso_max = np.asarray(iso) * 100
             related_muscle_num = [0] * (len(measured_muscle_idx))
             related_muscle_idx = []
             running_sum = len(measured_muscle_idx)
             for num in related_muscle_num:
                 related_muscle_idx.append(running_sum)
                 running_sum += num
+    elif joint_idx == 'shoulder':
+        # musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed', 'DelPos', 'BicLong', 'BicSho', 'TriLong',
+        #               'LD', 'TerMaj', 'TerMin', 'Infra', 'Supra', 'Cora']
+        musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed', 'DelPos', 'BicLong', 'BicSho', 'TriLong',
+                      'LD', 'Cora']
+        measured_muscle_idx = []
+        iso = []
+        for m in musc_label:
+            i = musc_label_all.index(m)
+            measured_muscle_idx.append(measured_muscle_idx_all[i])
+            iso.append(iso_all[i])
+        muscle_idx = measured_muscle_idx
+        iso_min = np.asarray(iso) * 0.01
+        iso_max = np.asarray(iso) * 100
+        related_muscle_num = [0] * (len(measured_muscle_idx))
+        related_muscle_idx = []
+        running_sum = len(measured_muscle_idx)
+        for num in related_muscle_num:
+            related_muscle_idx.append(running_sum)
+            running_sum += num
+    elif joint_idx == 'elbow':
+        musc_label = ['BicLong', 'BicSho', 'TriLong', 'TriLat', 'BRA', 'BRD']
+        measured_muscle_idx = []
+        iso = []
+        for m in musc_label:
+            i = musc_label_all.index(m)
+            measured_muscle_idx.append(measured_muscle_idx_all[i])
+            iso.append(iso_all[i])
+        muscle_idx = measured_muscle_idx
+        iso_min = np.asarray(iso) * 0.01
+        iso_max = np.asarray(iso) * 100
+        related_muscle_num = [0] * (len(measured_muscle_idx))
+        related_muscle_idx = []
+        running_sum = len(measured_muscle_idx)
+        for num in related_muscle_num:
+            related_muscle_idx.append(running_sum)
+            running_sum += num
 
-elif sport_label == 'deadlift':19
+        # measured_muscle_idx = ['bic_l', 'bic_s', 'tric_long_1', 'tric_lat_1', 'brachialis_1', 'brachiorad_1']
+        # musc_label = musc_label_all[6:12]
+        # muscle_idx = measured_muscle_idx
+        # iso = [347, 173, 223, 153, 314, 30]
+        # iso_min = np.asarray(iso) * 0.01
+        # iso_max = np.asarray(iso) * 100
+        # iso_min[2:] = np.asarray([87, 87, 87, 30])
+        # iso_max[2:] = np.asarray([3350, 3350, 1039, 164]) * 10
+        # related_muscle_num = [0] * (len(measured_muscle_idx))
+        # related_muscle_idx = []
+        # running_sum = len(measured_muscle_idx)
+        # for num in related_muscle_num:
+        #     related_muscle_idx.append(running_sum)
+        #     running_sum += num
+
+
+elif sport_label == 'deadlift':
     joint_num = {'waist': '1',
                  'hip': '2',
                  'knee': '3'}
@@ -142,7 +227,8 @@ elif sport_label == 'deadlift':19
                           'addbrev_r', 'semimem_r', 'bfsh_r',
                           'glmax2_r', 'glmax3_r',
                           'glmed2_r', 'glmed3_r',
-                          'Ps_L2_TP_r', 'Ps_L3_TP_r', 'Ps_L4_TP_r', 'Ps_L5_TP_r', 'Ps_L1_VB_l', 'Ps_L2_TP_l', 'Ps_L3_TP_l', 'Ps_L4_TP_l', 'Ps_L5_TP_l',
+                          'Ps_L2_TP_r', 'Ps_L3_TP_r', 'Ps_L4_TP_r', 'Ps_L5_TP_r', 'Ps_L1_VB_l', 'Ps_L2_TP_l',
+                          'Ps_L3_TP_l', 'Ps_L4_TP_l', 'Ps_L5_TP_l',
                           'IO1_l', 'rect_abd_l', 'IL_R5_l', 'MF_m1t_3_l', 'EO1_l', 'LTpT_T2_l'
                           ]
             iso = [1227, 1575, 3115, 5148, 2192,
@@ -355,11 +441,14 @@ def emg_rectification(x, Fs=1000, code=None, people=None, left=False):
             else:
                 ref = max(EMGLE)
         else:
-            emg_rect_label = ['PM1', 'PM2', 'PM3', 'Del1', 'Del2', 'Del3', 'Bic1', 'Bic2', 'Tri1', 'Tri2',
-                              'Brachia', 'Brachio', 'LD', 'TMaj', 'TMin', 'Inf', 'Sup', 'Cora']
-            benchpress_mvc = [0.1276, 0.0980, 0.1523]
-            benchpress_musc_label = ['BIC', 'TRI', 'ANT', 'POS', 'PEC', 'LAT', 'BRA', 'BRD']
-            benchpress_mvc = [0.67077, 0.67077, 0.263597, 0.23831, 0.43018, 0.15176, 0.67077, 0.67077]
+            benchpress_musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
+                                     'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
+                                     'BRA', 'BRD', 'LD', 'TerMaj', 'TerMin',
+                                     'Infra', 'Supra', 'Cora']
+            benchpress_mvc = [0.1276, 0.0980, 0.1523, 0.3392, 0.1792, 0.3061, 0.7502, 0.9241, 0.2260, 0.3334,
+                              0.2839, 0.3180, 0.1129, 0.1759, 0.1408, 0.2714, 0.1454, 0.9309]
+            # benchpress_musc_label = ['BIC', 'TRI', 'ANT', 'POS', 'PEC', 'LAT', 'BRA', 'BRD']
+            # benchpress_mvc = [0.67077, 0.67077, 0.263597, 0.23831, 0.43018, 0.15176, 0.67077, 0.67077]
             deadlift_waist_musc_label = ['PM', 'IO', 'RA', 'ESI', 'Mul', 'EO', 'ESL', 'LD']
             deadlift_waist_mvc = [0.0838 * 2, 0.1731 * 2, 0.1259 * 1.5, 0.1388, 0.0839 * 1.5, 0.1107 * 1.5, 0.1218,
                                   0.0754 * 2]

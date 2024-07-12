@@ -29,8 +29,10 @@ def emg_file_progressing(emg, fs=1000, people=None, sport='biceps_curl'):
             emg_list = np.asarray([emg_BIC, emg_TRI, emg_ANT, emg_POS, emg_PEC, emg_LAT])
             t_list = np.asarray([t1, t2, t3, t4, t5, t6])
         else:
-            emg_rect_label = ['PM1', 'PM2', 'PM3', 'Del1', 'Del2', 'Del3', 'Bic1', 'Bic2', 'Tri1', 'Tri2',
-                              'Brachia', 'Brachio', 'LD', 'TMaj', 'TMin', 'Inf', 'Sup', 'Cora']
+            emg_rect_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
+                              'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
+                              'BRA', 'BRD', 'LD', 'TerMaj', 'TerMin',
+                              'Infra', 'Supra', 'Cora']
             emg_list = []
             t_list = []
             for i in range(len(emg_rect_label)):
@@ -1347,10 +1349,13 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
                 [27.382, 28.165, 28.165, 29.015],
                 [29.015, 30.048, 30.048, 30.982]
             ]
+        else:
+            print('No label', label, 'in date', date)
+            return 0
     elif date == '240604':
         if label == 'yt-bp-20kg':
             rep = 10
-            file_folder = 'files/bench press/muscle-18/yuetian/'
+            file_folder = 'files/bench press/muscle-18/yuetian/emg/'
             files = [file_folder + 'test 2024_06_04 16_16_22.xlsx'] * rep
             sport_label = 'bench_press'
             people = 'yuetian'
@@ -1368,6 +1373,153 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
                 [26.565, 27.698, 27.698, 28.615],
                 [28.982, 30.132, 30.132, 31.064]
             ]
+        elif label == 'yt-bp-30kg':
+            rep = 10
+            file_folder = 'files/bench press/muscle-18/yuetian/emg/'
+            files = [file_folder + 'test 2024_06_04 16_21_47.xlsx'] * rep
+            sport_label = 'bench_press'
+            people = 'yuetian'
+            t_delta_emg = [0] * rep
+            t_delta_joi = [0] * rep
+            timestep_emg = [
+                [11.449, 12.633, 12.633, 13.383],
+                [13.449, 14.399, 14.399, 15.149],
+                [15.366, 16.182, 16.182, 16.882],
+                [17.032, 17.916, 17.916, 18.749],
+                [18.749, 19.566, 19.566, 20.249],
+                [20.315, 21.032, 21.032, 21.682],
+                [21.682, 22.415, 22.415, 23.115],
+                [23.115, 23.765, 23.765, 24.482],
+                [24.482, 25.215, 25.215, 25.915],
+                [25.915, 26.765, 26.765, 27.365]
+            ]
+        elif label == 'yt-bp-40kg':
+            rep = 10
+            file_folder = 'files/bench press/muscle-18/yuetian/emg/'
+            files = [file_folder + 'test 2024_06_04 16_23_42.xlsx'] * rep
+            sport_label = 'bench_press'
+            people = 'yuetian'
+            t_delta_emg = [0] * rep
+            t_delta_joi = [0] * rep
+            timestep_emg = [
+                [7.600, 8.783, 8.783, 9.517],
+                [9.683, 10.483, 10.483, 11.117],
+                [11.200, 11.867, 11.867, 12.500],
+                [12.567, 13.300, 13.300, 13.900],
+                [13.900, 14.550, 14.550, 15.183],
+                [15.216, 16.200, 16.200, 16.783],
+                [16.783, 17.383, 17.383, 17.949],
+                [17.949, 18.533, 18.533, 19.100],
+                [19.100, 19.683, 19.683, 20.216],
+                [20.216, 20.833, 20.833, 21.433]
+            ]
+        elif label == 'yt-bp-50kg':
+            rep = 10
+            file_folder = 'files/bench press/muscle-18/yuetian/emg/'
+            files = [file_folder + 'test 2024_06_04 16_26_07.xlsx'] * rep
+            sport_label = 'bench_press'
+            people = 'yuetian'
+            t_delta_emg = [0] * rep
+            t_delta_joi = [0] * rep
+            timestep_emg = [
+                [7.850, 8.783, 8.783, 9.350],
+                [9.666, 10.250, 10.250, 10.800],
+                [11.066, 11.650, 11.650, 12.216],
+                [12.400, 13.000, 13.000, 13.566],
+                [13.733, 14.266, 14.266, 14.849],
+                [14.916, 15.533, 15.533, 16.216],
+                [16.216, 16.816, 16.816, 17.399],
+                [17.499, 18.033, 18.033, 18.599],
+                [18.666, 19.183, 19.183, 19.783],
+                [19.783, 20.333, 20.333, 21.116]
+            ]
+        elif label == 'yt-bp-60kg':
+            rep = 10
+            file_folder = 'files/bench press/muscle-18/yuetian/emg/'
+            files = [file_folder + 'test 2024_06_04 16_29_21.xlsx'] * rep
+            sport_label = 'bench_press'
+            people = 'yuetian'
+            t_delta_emg = [0] * rep
+            t_delta_joi = [0] * rep
+            timestep_emg = [
+                [22.365, 23.249, 23.249, 23.915],
+                [23.915, 24.599, 24.599, 25.299],
+                [25.299, 26.132, 26.132, 26.982],
+                [27.115, 27.865, 27.865, 28.648],
+                [28.715, 29.398, 29.398, 30.165],
+                [30.165, 30.815, 30.815, 31.582],
+                [31.732, 32.315, 32.315, 33.082],
+                [33.082, 33.715, 33.715, 34.381],
+                [34.381, 35.015, 35.015, 35.698],
+                [35.698, 36.298, 36.298, 36.998]
+            ]
+        elif label == 'yt-bp-all':
+            rep = [10] * 5
+            file_folder = 'files/bench press/muscle-18/yuetian/emg/'
+            files = ([file_folder + 'test 2024_06_04 16_16_22.xlsx'] * rep[0] +
+                     [file_folder + 'test 2024_06_04 16_21_47.xlsx'] * rep[1] +
+                     [file_folder + 'test 2024_06_04 16_23_42.xlsx'] * rep[2] +
+                     [file_folder + 'test 2024_06_04 16_26_07.xlsx'] * rep[3] +
+                     [file_folder + 'test 2024_06_04 16_29_21.xlsx'] * rep[4])
+            sport_label = 'bench_press'
+            people = 'yuetian'
+            t_delta_emg = [0] * sum(rep)
+            t_delta_joi = [0] * sum(rep)
+            timestep_emg = [
+                [6.650, 8.133, 8.133, 8.983],
+                [9.583, 10.766, 10.766, 11.583],
+                [12.032, 13.149, 13.149, 13.949],
+                [14.316, 15.599, 15.599, 16.549],
+                [16.732, 17.956, 17.956, 19.032],
+                [19.682, 20.715, 20.715, 21.449],
+                [22.015, 23.082, 23.082, 23.865],
+                [23.998, 25.315, 25.315, 26.182],
+                [26.565, 27.698, 27.698, 28.615],
+                [28.982, 30.132, 30.132, 31.064],
+                [11.449, 12.633, 12.633, 13.383],
+                [13.449, 14.399, 14.399, 15.149],
+                [15.366, 16.182, 16.182, 16.882],
+                [17.032, 17.916, 17.916, 18.749],
+                [18.749, 19.566, 19.566, 20.249],
+                [20.315, 21.032, 21.032, 21.682],
+                [21.682, 22.415, 22.415, 23.115],
+                [23.115, 23.765, 23.765, 24.482],
+                [24.482, 25.215, 25.215, 25.915],
+                [25.915, 26.765, 26.765, 27.365],
+                [7.600, 8.783, 8.783, 9.517],
+                [9.683, 10.483, 10.483, 11.117],
+                [11.200, 11.867, 11.867, 12.500],
+                [12.567, 13.300, 13.300, 13.900],
+                [13.900, 14.550, 14.550, 15.183],
+                [15.216, 16.200, 16.200, 16.783],
+                [16.783, 17.383, 17.383, 17.949],
+                [17.949, 18.533, 18.533, 19.100],
+                [19.100, 19.683, 19.683, 20.216],
+                [20.216, 20.833, 20.833, 21.433],
+                [7.850, 8.783, 8.783, 9.350],
+                [9.666, 10.250, 10.250, 10.800],
+                [11.066, 11.650, 11.650, 12.216],
+                [12.400, 13.000, 13.000, 13.566],
+                [13.733, 14.266, 14.266, 14.849],
+                [14.916, 15.533, 15.533, 16.216],
+                [16.216, 16.816, 16.816, 17.399],
+                [17.499, 18.033, 18.033, 18.599],
+                [18.666, 19.183, 19.183, 19.783],
+                [19.783, 20.333, 20.333, 21.116],
+                [22.365, 23.249, 23.249, 23.915],
+                [23.915, 24.599, 24.599, 25.299],
+                [25.299, 26.132, 26.132, 26.982],
+                [27.115, 27.865, 27.865, 28.648],
+                [28.715, 29.398, 29.398, 30.165],
+                [30.165, 30.815, 30.815, 31.582],
+                [31.732, 32.315, 32.315, 33.082],
+                [33.082, 33.715, 33.715, 34.381],
+                [34.381, 35.015, 35.015, 35.698],
+                [35.698, 36.298, 36.298, 36.998]
+            ]
+        else:
+            print('No label', label, 'in date', date)
+            return 0
     elif label == 'yt-dl-35kg':
         rep = 6
         file_folder = 'files/deadlift/yuetian/emg/'
@@ -1521,7 +1673,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
             [(np.min(data[i, :, j + 1] - data[i, :, j]) / 0.01) for j in range(data.shape[2] - 1)])
 
     color = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
-    if sport_label == 'bench_press':
+    if len(measured_muscle_idx) <= 10:
         plt.figure(figsize=(6, 7.7))
         for j in range(len(measured_muscle_idx)):
             plt.subplot(len(measured_muscle_idx), 1, j + 1)
@@ -1533,7 +1685,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
                 ax.axes.xaxis.set_visible(False)
         num = num + 1
         plt.savefig('emg_{}.png'.format(num))
-    elif sport_label == 'deadlift':
+    else:
         plt.figure(figsize=(10, 7.7))
         for j in range(len(measured_muscle_idx)):
             plt.subplot(round(len(measured_muscle_idx) / 2), 2, j + 1)
@@ -1546,7 +1698,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         num = num + 1
         plt.savefig('emg_{}.png'.format(num))
 
-    if sport_label == 'bench_press':
+    if len(measured_muscle_idx) <= 10:
         plt.figure(figsize=(6, 7.7))
         for j in range(len(measured_muscle_idx)):
             plt.subplot(len(measured_muscle_idx), 1, j + 1)
@@ -1558,7 +1710,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         plt.xlabel('timestep', weight='bold')
         num = num + 1
         plt.savefig('emg_{}.png'.format(num))
-    elif sport_label == 'deadlift':
+    else:
         plt.figure(figsize=(10, 7.7))
         for j in range(len(measured_muscle_idx)):
             plt.subplot(round(len(measured_muscle_idx) / 2), 2, j + 1)
@@ -1571,7 +1723,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         num = num + 1
         plt.savefig('emg_{}.png'.format(num))
 
-    if sport_label == 'bench_press':
+    if len(measured_muscle_idx) <= 10:
         plt.figure(figsize=(6, 7.7))
         for j in range(len(measured_muscle_idx)):
             plt.subplot(len(measured_muscle_idx), 1, j + 1)
@@ -1585,7 +1737,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         plt.xlabel('timestep', weight='bold')
         num = num + 1
         plt.savefig('emg_{}.png'.format(num))
-    elif sport_label == 'deadlift':
+    else:
         plt.figure(figsize=(10, 7.7))
         for j in range(len(measured_muscle_idx)):
             plt.subplot(round(len(measured_muscle_idx) / 2), 2, j + 1)
@@ -1659,7 +1811,7 @@ if __name__ == '__main__':
     # calculate_chenzui_emg_distribution(label='bp-5.5kg')
     # calculate_chenzui_emg_distribution(label='bp-4kg')
     # calculate_lizhuo_emg_distribution(label='1kg')
-    calculate_other_emg_distribution(label='yt-bp-20kg')
+    calculate_other_emg_distribution(label='yt-bp-all')
     # calculate_other_emg_distribution(label='yt-bp-20kg')
     # calculate_other_emg_distribution(label='yt-bp-30kg')
     # calculate_other_emg_distribution(label='yt-bp-40kg')
