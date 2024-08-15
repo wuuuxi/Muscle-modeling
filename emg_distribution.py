@@ -29,14 +29,14 @@ def emg_file_progressing(emg, fs=1000, people=None, sport='biceps_curl'):
             emg_list = np.asarray([emg_BIC, emg_TRI, emg_ANT, emg_POS, emg_PEC, emg_LAT])
             t_list = np.asarray([t1, t2, t3, t4, t5, t6])
         else:
-            emg_rect_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
-                              'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
-                              'BRA', 'BRD', 'LD', 'TerMaj', 'TerMin',
-                              'Infra', 'Supra', 'Cora']
+            # emg_rect_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
+            #                   'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
+            #                   'BRA', 'BRD', 'LD', 'TerMaj', 'TerMin',
+            #                   'Infra', 'Supra', 'Cora']
             emg_list = []
             t_list = []
-            for i in range(len(emg_rect_label)):
-                [emg_rect, t] = emg_rectification(emg[:, i + 1], fs, emg_rect_label[i], people, left)
+            for i in range(len(musc_label)):
+                [emg_rect, t] = emg_rectification(emg[:, i + 1], fs, musc_label[i], people, left)
                 emg_list.append(emg_rect)
                 t_list.append(t)
             emg_list = np.asarray(emg_list)
@@ -63,6 +63,8 @@ def emg_file_progressing(emg, fs=1000, people=None, sport='biceps_curl'):
             emg_list = np.concatenate((emg_list[:6], emg_list[8:10]))
             t_list = np.concatenate((t_list[:6], t_list[8:10]))
         return [emg_list, t_list]
+    else:
+        print('No such sport.')
 
 
 def calculate_emg_distribution():
@@ -1619,6 +1621,101 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
             [16.199, 16.966, 16.966, 17.816],
             [18.482, 19.032, 19.032, 20.065]
         ]
+    elif label == 'kh-bp-20kg':
+        rep = 10
+        file_folder = 'files/bench press/muscle-18/kehan/emg/'
+        files = [file_folder + 'test 2024_07_31 11_25_10.csv'] * rep
+        sport_label = 'bench_press'
+        people = 'kehan'
+        t_delta_emg = [0] * rep
+        t_delta_joi = [0] * rep
+        timestep_emg = [
+            [6.667, 7.783, 7.783, 8.233],
+            [8.966, 9.766, 9.766, 10.350],
+            [11.200, 11.816, 11.816, 12.483],
+            [13.300, 14.233, 14.233, 14.649],
+            [15.366, 16.316, 16.316, 16.733],
+            [17.483, 18.416, 18.416, 18.966],
+            [19.566, 20.499, 20.499, 21.049],
+            [21.649, 22.749, 22.749, 23.116],
+            [23.849, 24.916, 24.916, 25.349],
+            [26.266, 27.249, 27.249, 27.799]
+        ]
+    elif label == 'kh-bp-30kg':
+        rep = 10
+        file_folder = 'files/bench press/muscle-18/kehan/emg/'
+        files = [file_folder + 'test 2024_07_31 11_27_28.csv'] * rep
+        sport_label = 'bench_press'
+        people = 'kehan'
+        t_delta_emg = [0] * rep
+        t_delta_joi = [0] * rep
+        timestep_emg = [
+            [10.466, 11.616, 11.616, 12.283],
+            [13.083, 14.100, 14.100, 14.666],
+            [15.399, 16.516, 16.516, 17.066],
+            [17.766, 18.749, 18.749, 19.266],
+            [19.966, 21.099, 21.099, 21.649],
+            [22.616, 23.682, 23.682, 24.216],
+            [25.149, 26.199, 26.199, 26.732],
+            [27.466, 28.482, 28.482, 29.032],
+            [29.799, 30.849, 30.849, 31.399],
+            [32.165, 33.182, 33.182, 33.732]
+        ]
+    elif label == 'kh-bp-all':
+        rep = [10, 10, 8, 5, 8]
+        file_folder = 'files/bench press/muscle-18/kehan/emg/'
+        files = ([file_folder + 'test 2024_07_31 11_25_10.csv'] * rep[0] +
+                 [file_folder + 'test 2024_07_31 11_27_28.csv'] * rep[1] +
+                 [file_folder + 'test 2024_07_31 11_29_38.csv'] * rep[2] +
+                 [file_folder + 'test 2024_07_31 11_36_27.csv'] * rep[3] +
+                 [file_folder + 'test 2024_07_31 11_42_15.csv'] * rep[4])
+        sport_label = 'bench_press'
+        people = 'kehan'
+        t_delta_emg = [0] * sum(rep)
+        t_delta_joi = [0] * sum(rep)
+        timestep_emg = [
+            [6.667, 7.783, 7.783, 8.233],
+            [8.966, 9.766, 9.766, 10.350],
+            [11.200, 11.816, 11.816, 12.483],
+            [13.300, 14.233, 14.233, 14.649],
+            [15.366, 16.316, 16.316, 16.733],
+            [17.483, 18.416, 18.416, 18.966],
+            [19.566, 20.499, 20.499, 21.049],
+            [21.649, 22.749, 22.749, 23.116],
+            [23.849, 24.916, 24.916, 25.349],
+            [26.266, 27.249, 27.249, 27.799],
+            [10.466, 11.616, 11.616, 12.283],
+            [13.083, 14.100, 14.100, 14.666],
+            [15.399, 16.516, 16.516, 17.066],
+            [17.766, 18.749, 18.749, 19.266],
+            [19.966, 21.099, 21.099, 21.649],
+            [22.616, 23.682, 23.682, 24.216],
+            [25.149, 26.199, 26.199, 26.732],
+            [27.466, 28.482, 28.482, 29.032],
+            [29.799, 30.849, 30.849, 31.399],
+            [32.165, 33.182, 33.182, 33.732],
+            [16.866, 17.966, 17.966, 18.566],
+            [19.132, 19.949, 19.949, 20.516],
+            [21.066, 22.182, 22.182, 22.815],
+            [23.215, 24.315, 24.315, 24.932],
+            [25.465, 26.615, 26.615, 27.265],
+            [27.765, 28.849, 28.849, 29.498],
+            [30.032, 31.082, 31.082, 31.765],
+            [32.448, 33.448, 33.448, 34.148],
+            [7.717, 9.017, 9.017, 9.767],
+            [10.400, 11.483, 11.483, 12.266],
+            [12.916, 14.100, 14.100, 14.950],
+            [15.583, 16.750, 16.750, 17.533],
+            [18.149, 19.466, 19.466, 20.449],
+            [9.083, 10.066, 10.066, 10.716],
+            [11.366, 12.183, 12.183, 12.749],
+            [13.599, 14.416, 14.416, 15.066],
+            [16.099, 17.049, 17.049, 17.733],
+            [18.616, 19.482, 19.482, 20.166],
+            [20.849, 21.732, 21.732, 22.499],
+            [23.316, 24.299, 24.299, 25.165],
+            [25.999, 27.082, 27.082, 27.982]
+        ]
     else:
         print('No label:', label)
         return 0
@@ -1627,7 +1724,10 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
     emg_all = [([]) for _ in range(data_set_number)]
     t_emg_all = [([]) for _ in range(data_set_number)]
     for i in range(data_set_number):
-        emg_all[i] = np.asarray(pd.read_excel(files[i]))
+        if '.csv' in files[i]:
+            emg_all[i] = from_csv_to_emg(files[i])
+        else:
+            emg_all[i] = np.asarray(pd.read_excel(files[i]))
         [emg_all[i], t_emg_all[i]] = emg_file_progressing(emg_all[i], fs, people, sport_label)
         t_emg_all[i] = t_emg_all[i] - t_delta_emg[i] + t_delta_joi[i]
 
@@ -1777,7 +1877,7 @@ def calculate_other_emg_distribution(label='yt-bp-20kg'):
         np.save(file_folder + 'std_60kg', data_std)
         np.save(file_folder + 'trend_u_60kg', data_trend_u)
         np.save(file_folder + 'trend_d_60kg', data_trend_d)
-    elif label == 'yt-bp-all':
+    elif label == 'yt-bp-all' or label == 'kh-bp-all':
         np.save(file_folder + 'mean_all', data_mean)
         np.save(file_folder + 'std_all', data_std)
         np.save(file_folder + 'trend_u_all', data_trend_u)
@@ -1811,7 +1911,8 @@ if __name__ == '__main__':
     # calculate_chenzui_emg_distribution(label='bp-5.5kg')
     # calculate_chenzui_emg_distribution(label='bp-4kg')
     # calculate_lizhuo_emg_distribution(label='1kg')
-    calculate_other_emg_distribution(label='yt-bp-all')
+    calculate_other_emg_distribution(label='kh-bp-30kg')
+    # calculate_other_emg_distribution(label='kh-bp-all')
     # calculate_other_emg_distribution(label='yt-bp-20kg')
     # calculate_other_emg_distribution(label='yt-bp-30kg')
     # calculate_other_emg_distribution(label='yt-bp-40kg')

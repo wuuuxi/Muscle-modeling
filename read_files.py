@@ -1485,6 +1485,102 @@ def read_realted_files_bp(label='chenzui-left-3kg', idx='1', include_state=inclu
             if idx == idx_list[i]:
                 timestep_emg = timestep[i]
                 break
+    elif label == 'bp-yuetian-right-60kg' and date == '240604':
+        people = 'yuetian'
+        idx_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        assert idx in idx_list
+        file_folder = 'files/bench press/muscle-18/yuetian/'
+        emg = np.asarray(pd.read_excel(file_folder + 'emg/test 2024_06_04 16_29_21.xlsx'))
+        joint_angle = pd.read_excel(file_folder + JA + '60' + '.xlsx')
+        moment = pd.read_excel(file_folder + ID + '60' + '.xlsx')
+        momarm1 = pd.read_excel(file_folder + MA1 + '60' + '.xlsx')
+        momarm2 = pd.read_excel(file_folder + MA2 + '60' + '.xlsx')
+        emg_mean = np.load(file_folder + 'emg/mean_all.npy')
+        emg_std = np.load(file_folder + 'emg/std_all.npy')
+        emg_trend_u = np.load(file_folder + 'emg/trend_u_all.npy')
+        emg_trend_d = np.load(file_folder + 'emg/trend_d_all.npy')
+        t_delta_emg = 0
+        t_delta_joi = 0
+        timestep = [
+            [22.365, 23.249, 23.249, 23.915],
+            [23.915, 24.599, 24.599, 25.299],
+            [25.299, 26.132, 26.132, 26.982],
+            [27.115, 27.865, 27.865, 28.648],
+            [28.715, 29.398, 29.398, 30.165],
+            [30.165, 30.815, 30.815, 31.582],
+            [31.732, 32.315, 32.315, 33.082],
+            [33.082, 33.715, 33.715, 34.381],
+            [34.381, 35.015, 35.015, 35.698],
+            [35.698, 36.298, 36.298, 36.998]
+        ]
+        for i in range(len(idx_list)):
+            if idx == idx_list[i]:
+                timestep_emg = timestep[i]
+                break
+    elif label == 'bp-kehan-right-20kg':
+        people = 'yuetian'
+        idx_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        assert idx in idx_list
+        file_folder = 'files/bench press/muscle-18/kehan/'
+        emg = from_csv_to_emg(file_folder + 'emg/test 2024_07_31 11_25_10.csv')
+        joint_angle = pd.read_excel(file_folder + JA + '20' + '.xlsx')
+        moment = pd.read_excel(file_folder + ID + '20' + '.xlsx')
+        momarm1 = pd.read_excel(file_folder + MA1 + '20' + '.xlsx')
+        momarm2 = pd.read_excel(file_folder + MA2 + '20' + '.xlsx')
+        emg_mean = np.load(file_folder + 'emg/mean_all.npy')
+        emg_std = np.load(file_folder + 'emg/std_all.npy')
+        emg_trend_u = np.load(file_folder + 'emg/trend_u_all.npy')
+        emg_trend_d = np.load(file_folder + 'emg/trend_d_all.npy')
+        t_delta_emg = 0
+        t_delta_joi = 0
+        timestep = [
+            [6.650, 8.133, 8.133, 8.983],
+            [9.583, 10.766, 10.766, 11.583],
+            [12.032, 13.149, 13.149, 13.949],
+            [14.316, 15.599, 15.599, 16.549],
+            [16.732, 17.956, 17.956, 19.032],
+            [19.682, 20.715, 20.715, 21.449],
+            [22.015, 23.082, 23.082, 23.865],
+            [23.998, 25.315, 25.315, 26.182],
+            [26.565, 27.698, 27.698, 28.615],
+            [28.982, 30.132, 30.132, 31.064]
+        ]
+        for i in range(len(idx_list)):
+            if idx == idx_list[i]:
+                timestep_emg = timestep[i]
+                break
+    elif label == 'bp-kehan-right-30kg':
+        people = 'yuetian'
+        idx_list = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        assert idx in idx_list
+        file_folder = 'files/bench press/muscle-18/kehan/'
+        emg = from_csv_to_emg(file_folder + 'emg/test 2024_07_31 11_27_28.csv')
+        joint_angle = pd.read_excel(file_folder + JA + '30' + '.xlsx')
+        moment = pd.read_excel(file_folder + ID + '30' + '.xlsx')
+        momarm1 = pd.read_excel(file_folder + MA1 + '30' + '.xlsx')
+        momarm2 = pd.read_excel(file_folder + MA2 + '30' + '.xlsx')
+        emg_mean = np.load(file_folder + 'emg/mean_all.npy')
+        emg_std = np.load(file_folder + 'emg/std_all.npy')
+        emg_trend_u = np.load(file_folder + 'emg/trend_u_all.npy')
+        emg_trend_d = np.load(file_folder + 'emg/trend_d_all.npy')
+        t_delta_emg = 0
+        t_delta_joi = 0
+        timestep = [
+            [10.466, 11.616, 11.616, 12.283],
+            [13.083, 14.100, 14.100, 14.666],
+            [15.399, 16.516, 16.516, 17.066],
+            [17.766, 18.749, 18.749, 19.266],
+            [19.966, 21.099, 21.099, 21.649],
+            [22.616, 23.682, 23.682, 24.216],
+            [25.149, 26.199, 26.199, 26.732],
+            [27.466, 28.482, 28.482, 29.032],
+            [29.799, 30.849, 30.849, 31.399],
+            [32.165, 33.182, 33.182, 33.732]
+        ]
+        for i in range(len(idx_list)):
+            if idx == idx_list[i]:
+                timestep_emg = timestep[i]
+                break
     else:
         print('No corresponding label!')
         return 0
@@ -1502,6 +1598,9 @@ def read_realted_files_bp(label='chenzui-left-3kg', idx='1', include_state=inclu
         angle2 = joint_angle['elbow_flex_r']
         torque1 = moment['arm_flex_r_moment']
         torque2 = moment['elbow_flex_r_moment']
+
+    torque1 = scipy.signal.savgol_filter(torque1, 53, 3)
+    torque2 = scipy.signal.savgol_filter(torque2, 53, 3)
 
     t_tor = []
     t_arm = []
@@ -2740,7 +2839,7 @@ def read_groups_files(label='zhuo-right-3kg', idx=None):
     #         output.update({j: np.concatenate([files[i][j] for i in range(len(files))], axis=idx_axis)})
     #     return output
     elif label == 'bp-yuetian-right-20kg' or label == 'bp-yuetian-right-30kg' or label == 'bp-yuetian-right-40kg' or label == 'bp-yuetian-right-50kg' or label == 'bp-yuetian-right-60kg':
-        all_possible_idx = ['1', '2', '3', '4', '5']
+        all_possible_idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
         assert all(elem in all_possible_idx for elem in idx)
         axis0 = ['torque1', 'torque2', 'torque3', 'torque', 'time', 'time_emg', 'angle1', 'angle2', 'angle3']
         files = []
@@ -2757,9 +2856,10 @@ def read_groups_files(label='zhuo-right-3kg', idx=None):
             output.update({j: np.concatenate([files[i][j] for i in range(len(files))], axis=idx_axis)})
         return output
     elif label == 'bp-yuetian-right-all':
-        labels = ['bp-yuetian-right-20kg', 'bp-yuetian-right-50kg']
-        idxs = [['2', '3', '4'],
-                ['2', '3', '4']]
+        labels = ['bp-yuetian-right-20kg', 'bp-yuetian-right-40kg', 'bp-yuetian-right-60kg']
+        idxs = [['2', '3', '4', '5', '6'],
+                ['2', '3', '4', '5', '7'],
+                ['2', '3', '4', '5', '6']]
         axis0 = ['torque1', 'torque2', 'torque3', 'torque', 'time', 'time_emg', 'angle1', 'angle2', 'angle3']
         files = []
         output = {}
@@ -2807,6 +2907,45 @@ def read_groups_files(label='zhuo-right-3kg', idx=None):
             idx = idxs[k]
             for i in idx:
                 file = read_realted_files_dl(label, i)
+                files.append(file)
+        for j in files[0]:
+            # print(j)
+            if j in axis0:
+                idx_axis = 0
+            else:
+                idx_axis = 1
+            output.update({j: np.concatenate([files[i][j] for i in range(len(files))], axis=idx_axis)})
+        return output
+    elif label == 'bp-kehan-right-20kg' or label == 'bp-kehan-right-30kg' or label == 'bp-kehan-right-40kg' or label == 'bp-kehan-right-50kg' or label == 'bp-kehan-right-45kg':
+        all_possible_idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
+        assert all(elem in all_possible_idx for elem in idx)
+        axis0 = ['torque1', 'torque2', 'torque3', 'torque', 'time', 'time_emg', 'angle1', 'angle2', 'angle3']
+        files = []
+        output = {}
+        for i in idx:
+            file = read_realted_files_bp(label, i)
+            files.append(file)
+        for j in files[0]:
+            # print(j)
+            if j in axis0:
+                idx_axis = 0
+            else:
+                idx_axis = 1
+            output.update({j: np.concatenate([files[i][j] for i in range(len(files))], axis=idx_axis)})
+        return output
+    elif label == 'bp-kehan-right-all':
+        labels = ['bp-yuetian-right-20kg', 'bp-yuetian-right-40kg', 'bp-yuetian-right-60kg']
+        idxs = [['2', '3', '4', '5', '6'],
+                ['2', '3', '4', '5', '7'],
+                ['2', '3', '4', '5', '6']]
+        axis0 = ['torque1', 'torque2', 'torque3', 'torque', 'time', 'time_emg', 'angle1', 'angle2', 'angle3']
+        files = []
+        output = {}
+        for k in range(len(labels)):
+            label = labels[k]
+            idx = idxs[k]
+            for i in idx:
+                file = read_realted_files_bp(label, i)
                 files.append(file)
         for j in files[0]:
             # print(j)

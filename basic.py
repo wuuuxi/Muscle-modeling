@@ -106,9 +106,9 @@ elif sport_label == 'bench_press':
                 related_muscle_idx.append(running_sum)
                 running_sum += num
         else:
-            musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
-                          'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
-                          'BRA', 'BRD', 'LD', 'Cora']
+            # musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
+            #               'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
+            #               'BRA', 'BRD', 'LD']
             # muscle_idx = ['pect_maj_c_1', 'pect_maj_t_5', 'pect_maj_t_1', 'delt_clav_1', 'delt_scap_5',
             #               'delt_scap_1', 'bic_l', 'bic_s', 'tric_long_1', 'tric_lat_1',
             #               'brachialis_1', 'brachiorad_1', 'LD_T10_l', 'ter_maj_1_l', 'ter_min_1_l',
@@ -180,21 +180,6 @@ elif sport_label == 'bench_press':
         for num in related_muscle_num:
             related_muscle_idx.append(running_sum)
             running_sum += num
-
-        # measured_muscle_idx = ['bic_l', 'bic_s', 'tric_long_1', 'tric_lat_1', 'brachialis_1', 'brachiorad_1']
-        # musc_label = musc_label_all[6:12]
-        # muscle_idx = measured_muscle_idx
-        # iso = [347, 173, 223, 153, 314, 30]
-        # iso_min = np.asarray(iso) * 0.01
-        # iso_max = np.asarray(iso) * 100
-        # iso_min[2:] = np.asarray([87, 87, 87, 30])
-        # iso_max[2:] = np.asarray([3350, 3350, 1039, 164]) * 10
-        # related_muscle_num = [0] * (len(measured_muscle_idx))
-        # related_muscle_idx = []
-        # running_sum = len(measured_muscle_idx)
-        # for num in related_muscle_num:
-        #     related_muscle_idx.append(running_sum)
-        #     running_sum += num
 
 
 elif sport_label == 'deadlift':
@@ -372,6 +357,12 @@ def find_nearest_idx(arr, value):
 
 
 def emg_rectification(x, Fs=1000, code=None, people=None, left=False):
+    nyquist_frequency = Fs / 2
+    low_cutoff = 20 / nyquist_frequency
+    high_cutoff = 450 / nyquist_frequency
+    [b, a] = scipy.signal.butter(4, [low_cutoff, high_cutoff], btype='band', analog=False)
+    x = scipy.signal.filtfilt(b, a, x)
+
     # Fs 采样频率，在港大的EMG信号中是1000Hz
     x_mean = np.mean(x)
     raw = x - x_mean * np.ones_like(x)
@@ -424,6 +415,19 @@ def emg_rectification(x, Fs=1000, code=None, people=None, left=False):
             ref = 108.985 * 10
         else:
             ref = max(EMGLE)
+    elif people == 'kehan':
+        if left is False:
+            benchpress_musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed', 'DelPos',
+                                     'BicLong', 'BicSho', 'TriLong', 'TriLat', 'BRA', 'BRD',
+                                     'LD', 'TerMaj', 'TerMin', 'Infra', 'Supra', 'Cora']
+            benchpress_mvc = [0.116, 0.078, 0.131, 0.1738, 0.3129, 0.3751, 0.0719, 0.1922, 0.2832, 0.2557, 0.2298,
+                              0.2906, 0.0927, 0.2927, 0.1766, 0.2214, 0.0837, 0.1591, ]
+            if code in benchpress_musc_label:
+                index = benchpress_musc_label.index(code)
+                ref = benchpress_mvc[index]
+            else:
+                ref = 1
+                print(f'No muscle \'{code}\' of people \'{people}\', used {ref} as MVC')
     elif people == 'yuetian':  # left
         if left is True:
             if code == 'LTA':
@@ -503,6 +507,15 @@ def from_csv_to_xlsx(folder):
                 # data_frame = pd.read_csv(root + '/' + file, skiprows=5)
                 data_frame = pd.read_csv(root + '/' + file)
                 data_frame.to_excel(root + '/' + xlsx_file, index=False)
+
+
+def from_csv_to_emg(csv_name):
+    states = pd.read_csv(csv_name, low_memory=False, skiprows=2)
+    emg = np.squeeze(np.asarray([states]))
+    emg = np.concatenate([emg[3:, 0:13], emg[3:, 19:25]], axis=1).astype(float)  # 前12和后6, 包括第一列时间
+    # emg = np.concatenate([emg[3:, 1:13], emg[3:, 19:25]], axis=1).astype(float)
+    # emg = emg[3:, 1:19].astype(float)
+    return emg
 
 
 if __name__ == '__main__':
