@@ -1581,6 +1581,93 @@ def read_realted_files_bp(label='chenzui-left-3kg', idx='1', include_state=inclu
             if idx == idx_list[i]:
                 timestep_emg = timestep[i]
                 break
+    elif label == 'bp-kehan-right-40kg':
+        people = 'yuetian'
+        idx_list = ['1', '2', '3', '4', '5', '6', '7', '8']
+        assert idx in idx_list
+        file_folder = 'files/bench press/muscle-18/kehan/'
+        emg = from_csv_to_emg(file_folder + 'emg/test 2024_07_31 11_29_38.csv')
+        joint_angle = pd.read_excel(file_folder + JA + '40' + '.xlsx')
+        moment = pd.read_excel(file_folder + ID + '40' + '.xlsx')
+        momarm1 = pd.read_excel(file_folder + MA1 + '40' + '.xlsx')
+        momarm2 = pd.read_excel(file_folder + MA2 + '40' + '.xlsx')
+        emg_mean = np.load(file_folder + 'emg/mean_all.npy')
+        emg_std = np.load(file_folder + 'emg/std_all.npy')
+        emg_trend_u = np.load(file_folder + 'emg/trend_u_all.npy')
+        emg_trend_d = np.load(file_folder + 'emg/trend_d_all.npy')
+        t_delta_emg = 0
+        t_delta_joi = 0
+        timestep = [
+            [16.866, 17.966, 17.966, 18.566],
+            [19.132, 19.949, 19.949, 20.516],
+            [21.066, 22.182, 22.182, 22.815],
+            [23.215, 24.315, 24.315, 24.932],
+            [25.465, 26.615, 26.615, 27.265],
+            [27.765, 28.849, 28.849, 29.498],
+            [30.032, 31.082, 31.082, 31.765],
+            [32.448, 33.448, 33.448, 34.148]
+        ]
+        for i in range(len(idx_list)):
+            if idx == idx_list[i]:
+                timestep_emg = timestep[i]
+                break
+    elif label == 'bp-kehan-right-45kg':
+        people = 'yuetian'
+        idx_list = ['1', '2', '3', '4', '5', '6', '7', '8']
+        assert idx in idx_list
+        file_folder = 'files/bench press/muscle-18/kehan/'
+        emg = from_csv_to_emg(file_folder + 'emg/test 2024_07_31 11_42_15.csv')
+        joint_angle = pd.read_excel(file_folder + JA + '45' + '.xlsx')
+        moment = pd.read_excel(file_folder + ID + '45' + '.xlsx')
+        momarm1 = pd.read_excel(file_folder + MA1 + '45' + '.xlsx')
+        momarm2 = pd.read_excel(file_folder + MA2 + '45' + '.xlsx')
+        emg_mean = np.load(file_folder + 'emg/mean_all.npy')
+        emg_std = np.load(file_folder + 'emg/std_all.npy')
+        emg_trend_u = np.load(file_folder + 'emg/trend_u_all.npy')
+        emg_trend_d = np.load(file_folder + 'emg/trend_d_all.npy')
+        t_delta_emg = 0
+        t_delta_joi = 0
+        timestep = [
+            [9.083, 10.066, 10.066, 10.716],
+            [11.366, 12.183, 12.183, 12.749],
+            [13.599, 14.416, 14.416, 15.066],
+            [16.099, 17.049, 17.049, 17.733],
+            [18.616, 19.482, 19.482, 20.166],
+            [20.849, 21.732, 21.732, 22.499],
+            [23.316, 24.299, 24.299, 25.165],
+            [25.999, 27.082, 27.082, 27.982]
+        ]
+        for i in range(len(idx_list)):
+            if idx == idx_list[i]:
+                timestep_emg = timestep[i]
+                break
+    elif label == 'bp-kehan-right-50kg':
+        people = 'yuetian'
+        idx_list = ['1', '2', '3', '4', '5']
+        assert idx in idx_list
+        file_folder = 'files/bench press/muscle-18/kehan/'
+        emg = from_csv_to_emg(file_folder + 'emg/test 2024_07_31 11_36_27.csv')
+        joint_angle = pd.read_excel(file_folder + JA + '50' + '.xlsx')
+        moment = pd.read_excel(file_folder + ID + '50' + '.xlsx')
+        momarm1 = pd.read_excel(file_folder + MA1 + '50' + '.xlsx')
+        momarm2 = pd.read_excel(file_folder + MA2 + '50' + '.xlsx')
+        emg_mean = np.load(file_folder + 'emg/mean_all.npy')
+        emg_std = np.load(file_folder + 'emg/std_all.npy')
+        emg_trend_u = np.load(file_folder + 'emg/trend_u_all.npy')
+        emg_trend_d = np.load(file_folder + 'emg/trend_d_all.npy')
+        t_delta_emg = 0
+        t_delta_joi = 0
+        timestep = [
+            [7.717, 9.017, 9.017, 9.767],
+            [10.400, 11.483, 11.483, 12.266],
+            [12.916, 14.100, 14.100, 14.950],
+            [15.583, 16.750, 16.750, 17.533],
+            [18.149, 19.466, 19.466, 20.449]
+        ]
+        for i in range(len(idx_list)):
+            if idx == idx_list[i]:
+                timestep_emg = timestep[i]
+                break
     else:
         print('No corresponding label!')
         return 0
@@ -2041,6 +2128,10 @@ def read_realted_files_dl(label='dl-yuetian-right-35kg', idx='1', include_state=
         torque1 = moment['flex_extension_force']
         torque2 = moment['hip_flexion_r_moment']
         torque3 = moment['knee_angle_r_moment']
+
+    torque1 = scipy.signal.savgol_filter(torque1, 53, 3)
+    torque2 = scipy.signal.savgol_filter(torque2, 53, 3)
+    torque3 = scipy.signal.savgol_filter(torque3, 53, 3)
 
     t_tor = []
     t_arm = []
@@ -2859,7 +2950,7 @@ def read_groups_files(label='zhuo-right-3kg', idx=None):
         labels = ['bp-yuetian-right-20kg', 'bp-yuetian-right-40kg', 'bp-yuetian-right-60kg']
         idxs = [['2', '3', '4', '5', '6'],
                 ['2', '3', '4', '5', '7'],
-                ['2', '3', '4', '5', '6']]
+                ['2', '3', '4', '5']]
         axis0 = ['torque1', 'torque2', 'torque3', 'torque', 'time', 'time_emg', 'angle1', 'angle2', 'angle3']
         files = []
         output = {}
@@ -2934,10 +3025,10 @@ def read_groups_files(label='zhuo-right-3kg', idx=None):
             output.update({j: np.concatenate([files[i][j] for i in range(len(files))], axis=idx_axis)})
         return output
     elif label == 'bp-kehan-right-all':
-        labels = ['bp-yuetian-right-20kg', 'bp-yuetian-right-40kg', 'bp-yuetian-right-60kg']
-        idxs = [['2', '3', '4', '5', '6'],
-                ['2', '3', '4', '5', '7'],
-                ['2', '3', '4', '5', '6']]
+        labels = ['bp-kehan-right-30kg', 'bp-kehan-right-40kg', 'bp-kehan-right-50kg']
+        idxs = [['1', '3', '4', '5', '6'],
+                ['1', '2', '3', '4', '6'],
+                ['2', '3']]
         axis0 = ['torque1', 'torque2', 'torque3', 'torque', 'time', 'time_emg', 'angle1', 'angle2', 'angle3']
         files = []
         output = {}

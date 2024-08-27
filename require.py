@@ -7,7 +7,7 @@ left = False
 sport_label = 'bench_press'
 # sport_label = 'deadlift'
 joint_idx = 'all'
-date = '240704'
+date = '240604'
 
 iso1 = [100, 100, 10]
 iso2 = [6000, 6000, 3000]
@@ -38,10 +38,10 @@ seven_six = True
 #                   'BicLong', 'BicSho', 'TriLong', 'TriLat', 'BRA', 'BRD',
 #                   'LD', 'TerMaj', 'TerMin', 'Infra', 'Supra', 'Cora']
 #
-# musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed',
-#               'DelPos', 'BicLong', 'BicSho', 'TriLong', 'TriLat',
-#               'BRA', 'BRD', 'LD']
-
 musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed', 'DelPos',
               'BicLong', 'BicSho', 'TriLong', 'TriLat', 'BRA', 'BRD',
-              'LD', 'TerMaj', 'TerMin', 'Infra', 'Supra', 'Cora']
+              'LD']
+
+# musc_label = ['PMCla', 'PMSte', 'PMCos', 'DelAnt', 'DelMed', 'DelPos',
+#               'BicLong', 'BicSho', 'TriLong', 'TriLat', 'BRA', 'BRD',
+#               'LD', 'TerMaj', 'TerMin', 'Infra', 'Supra', 'Cora']

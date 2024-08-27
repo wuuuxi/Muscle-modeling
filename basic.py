@@ -180,8 +180,6 @@ elif sport_label == 'bench_press':
         for num in related_muscle_num:
             related_muscle_idx.append(running_sum)
             running_sum += num
-
-
 elif sport_label == 'deadlift':
     joint_num = {'waist': '1',
                  'hip': '2',
@@ -358,10 +356,16 @@ def find_nearest_idx(arr, value):
 
 def emg_rectification(x, Fs=1000, code=None, people=None, left=False):
     nyquist_frequency = Fs / 2
-    low_cutoff = 20 / nyquist_frequency
-    high_cutoff = 450 / nyquist_frequency
+    low_cutoff = 30 / nyquist_frequency
+    high_cutoff = 10000 / nyquist_frequency
     [b, a] = scipy.signal.butter(4, [low_cutoff, high_cutoff], btype='band', analog=False)
     x = scipy.signal.filtfilt(b, a, x)
+
+    # nyquist_frequency = Fs / 2
+    # low_cutoff = 20 / nyquist_frequency
+    # high_cutoff = 450 / nyquist_frequency
+    # [b, a] = scipy.signal.butter(4, [low_cutoff, high_cutoff], btype='band', analog=False)
+    # x = scipy.signal.filtfilt(b, a, x)
 
     # Fs 采样频率，在港大的EMG信号中是1000Hz
     x_mean = np.mean(x)
@@ -371,7 +375,7 @@ def emg_rectification(x, Fs=1000, code=None, people=None, left=False):
 
     # 线性包络 Linear Envelope
     NUMPASSES = 3
-    LOWPASSRATE = 5  # 低通滤波4—10Hz得到包络线
+    LOWPASSRATE = 4  # 低通滤波2—10Hz得到包络线
 
     Wn = LOWPASSRATE / (Fs / 2)
     [b, a] = scipy.signal.butter(NUMPASSES, Wn, 'low')

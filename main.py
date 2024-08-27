@@ -395,14 +395,14 @@ def optimization_pyomo_deadlift(emg_mean, emg_std, arm, torque, emg):
         model.constr.add(model.y[i] <= iso_max[i])
     for j in model.J:
         for i in model.I:
-            model.constr.add(model.x[i, j] >= emg_mean[i, j] - emg_std[i, j] * 3)
-            model.constr.add(model.x[i, j] <= emg_mean[i, j] + emg_std[i, j] * 3)
-            model.constr.add(model.x[i, j] >= emg[i, j] - emg_std[i, j] * 3)
-            model.constr.add(model.x[i, j] <= emg[i, j] + emg_std[i, j] * 3)
-            # model.constr.add(model.x[i, j] >= emg_mean[i, j] - emg_std[i, j] * 2.5)
-            # model.constr.add(model.x[i, j] <= emg_mean[i, j] + emg_std[i, j] * 2.5)
-            # model.constr.add(model.x[i, j] >= emg[i, j] - emg_std[i, j] * 2.5)
-            # model.constr.add(model.x[i, j] <= emg[i, j] + emg_std[i, j] * 2.5)
+            # model.constr.add(model.x[i, j] >= emg_mean[i, j] - emg_std[i, j] * 3)
+            # model.constr.add(model.x[i, j] <= emg_mean[i, j] + emg_std[i, j] * 3)
+            # model.constr.add(model.x[i, j] >= emg[i, j] - emg_std[i, j] * 3)
+            # model.constr.add(model.x[i, j] <= emg[i, j] + emg_std[i, j] * 3)
+            model.constr.add(model.x[i, j] >= emg_mean[i, j] - emg_std[i, j] * 2.5)
+            model.constr.add(model.x[i, j] <= emg_mean[i, j] + emg_std[i, j] * 2.5)
+            model.constr.add(model.x[i, j] >= emg[i, j] - emg_std[i, j] * 2.5)
+            model.constr.add(model.x[i, j] <= emg[i, j] + emg_std[i, j] * 2.5)
             model.constr.add(model.x[i, j] >= 0)
             model.constr.add(model.x[i, j] <= 1)
             model.constr.add(model.f[i, j] == model.x[i, j] * model.y[i])  # muscle force
@@ -644,15 +644,18 @@ if __name__ == '__main__':
     # # plt.show()
     # #
     # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16']
-    # idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']  # 20kg
-    # idx = ['1', '3', '4', '5', '6', '7', '8', '10']  # 30kg
-    # # idx = ['1', '2', '3', '4', '5', '7', '8', '9', '10']  # 40kg
-    # # idx = ['2', '3', '4', '5', '6', '7', '8', '9', '10']  # 50kg
-    # # idx = ['1', '2', '3', '4', '5', '6', '7', '8']  # 60kg
-    label = 'bp-kehan-right-20kg'
-    idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']
-    one_repetition(label, idx)
-    plt.show()
+    # idx = ['10']  # 20kg
+    # idx = ['1', '3', '4', '5', '6', '7', '8', '9', '10']  # 30kg
+    # idx = ['1', '2', '3', '4', '6', '8']  # 40kg
+    # idx = ['2', '3']  # 50kg
+    # idx = ['1', '4', '5']  # 45kg
+    # label = 'bp-kehan-right-40kg'
+    # idx = ['1', '2', '3', '4', '5', '6', '8']
+    # label = 'bp-yuetian-right-40kg'  # '4'
+    label = 'bp-kehan-right-all'
+    idx = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']
+    # one_repetition(label, idx)
+    # plt.show()
 
     o = read_groups_files(label, idx)
     if 'bp' in label:
@@ -661,18 +664,24 @@ if __name__ == '__main__':
             print('-' * 25, 'training_rmse', '-' * 25)
             plot_all_result(len(idx), opt['torque'], opt['activation'], o['emg'].T, o['time'], o['torque'],
                             o['emg_std_long'], o['emg_mean_long'], opt['calu_torque'])
+            # plot_all_result_paper(len(idx), opt['torque'], opt['activation'], o['emg'].T, o['time'], o['torque'],
+            #                       o['emg_std_long'], o['emg_mean_long'], opt['calu_torque'])
             np.save('fmax', opt['fmax'])
-            y_r = np.load('fmax.npy')
-            print('-' * 25, 'application', '-' * 25)
-            application(label, y_r, idx)
+            # y_r = np.load('fmax.npy')
+            # print('-' * 25, 'application', '-' * 25)
+            # application(label, y_r, idx)
+            # application_paper(label, y_r, idx)
     elif 'dl' in label:
         if joint_idx == 'all':
             opt = optimization_pyomo_deadlift(o['emg_mean'], o['emg_std'], o['arm'], o['torque'], o['emg'])
             print('-' * 25, 'training_rmse', '-' * 25)
             plot_all_result(len(idx), opt['torque'], opt['activation'], o['emg'].T, o['time'], o['torque'],
                             o['emg_std_long'], o['emg_mean_long'], opt['calu_torque'])
-            np.save('fmax', opt['fmax'])
-            # y_r = np.load('fmax.npy')
+            # plot_all_result_paper(len(idx), opt['torque'], opt['activation'], o['emg'].T, o['time'], o['torque'],
+            #                       o['emg_std_long'], o['emg_mean_long'], opt['calu_torque'])
+            np.save('deadlift', opt['fmax'])
+            # y_r = np.load('deadlift.npy')
+            # application_paper(label, y_r, idx)
             print('-' * 25, 'application', '-' * 25)
             application(label, opt['fmax'], idx)
         elif joint_idx == 'twist' or joint_idx == 'hip' or joint_idx == 'knee':
