@@ -1018,7 +1018,7 @@ def test_optimization_emg_bp(num, y, torque1, torque2, time, emg_mean_long, emg_
     # plt.xlabel('Time(s)', weight='bold')
 
 
-def test_optimization_emg_dl(num, y, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std, trend_u, trend_d):
+def test_optimization_emg_dl(num, y, a, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std, trend_u, trend_d):
     time_long = resample_by_len(list(time), emg_mean_long.shape[1])
 
     shape0 = arm.shape[0]
@@ -1032,7 +1032,8 @@ def test_optimization_emg_dl(num, y, torque, time, emg_mean_long, emg_std_long, 
     model.K = RangeSet(0, shape2 - 1)
 
     # 定义变量
-    model.x = Var(model.I, model.J, within=NonNegativeReals)  # activation
+    model.x = Var(model.I, model.J, within=NonNegativeReals)  # muscle activation
+    model.u = Var(model.I, model.J, within=NonNegativeReals)  # neural activation
     # model.c = Var(model.I, within=NonNegativeReals)  # MVC emg
     model.f = Var(model.I, model.J, within=Reals)  # muscle force
     model.t = Var(model.J, model.K, within=Reals)  # torque
@@ -1044,10 +1045,11 @@ def test_optimization_emg_dl(num, y, torque, time, emg_mean_long, emg_std_long, 
             # if j != shape1 - 1:
             #     model.constr.add(model.x[i, j + 1] >= model.x[i, j] + target_len / emg_lift_len * 5 * trend_d[i][j])
             #     model.constr.add(model.x[i, j + 1] <= model.x[i, j] + target_len / emg_lift_len * 5 * trend_u[i][j])
-            model.constr.add(model.x[i, j] >= emg_mean[i, j] - emg_std[i, j] * 2.5)
-            model.constr.add(model.x[i, j] <= emg_mean[i, j] + emg_std[i, j] * 2.5)
-            model.constr.add(model.x[i, j] >= 0)
+            model.constr.add(model.u[i, j] >= emg_mean[i, j] - emg_std[i, j] * 2)
+            model.constr.add(model.u[i, j] <= emg_mean[i, j] + emg_std[i, j] * 2)
+            model.constr.add(model.x[i, j] == (2.71828 ** (a[i] * model.u[i, j]) - 1) / ((2.71828 ** a[i]) - 1))
             model.constr.add(model.x[i, j] <= 1)
+            model.constr.add(model.u[i, j] <= 1)
             model.constr.add(model.f[i, j] == model.x[i, j] * y[i])  # muscle force
         for k in range(shape2):
             model.constr.add(model.t[j, k] == sum(arm[i, j, k] * model.f[i, j] for i in model.I))  # torque
@@ -1066,7 +1068,116 @@ def test_optimization_emg_dl(num, y, torque, time, emg_mean_long, emg_std_long, 
     e = np.ones_like(torque)
     for i in model.I:
         for j in model.J:
-            c[i, j] = value(model.x[i, j])
+            c[i, j] = value(model.u[i, j])
+    for j in model.J:
+        for k in model.K:
+            e[j, k] = value(model.t[j, k])
+    act = np.asarray(c)
+    tor = np.asarray(e)
+
+    if sport_label == 'bench_press':
+        joint_include = ['elbow', 'shoulder']
+    elif sport_label == 'deadlift':
+        joint_include = ['waist', 'hip', 'knee']
+    plot_muscle_num = len(measured_muscle_idx)
+    # num_column = math.ceil((plot_muscle_num + 1) / 9)
+    num_column = len(joint_include)
+
+    if num_column == 1:
+        plt.figure(figsize=(3.3, 7.7))
+        plt.subplots_adjust(left=0.225, right=0.935)
+    elif num_column == 2:
+        plt.figure(figsize=(4.8, 7.7))
+        plt.subplots_adjust(left=0.152, right=0.963, bottom=0.067, top=0.946, wspace=0.403, hspace=0.205)
+    elif num_column == 3:
+        plt.figure(figsize=(8, 7.7))
+        plt.subplots_adjust(left=0.090, right=0.990, bottom=0.065, top=0.970, wspace=0.350)
+    else:
+        plt.figure(figsize=(1.6 * (num_column + 1), 7.7))
+        plt.subplots_adjust(left=0.152, right=0.963, bottom=0.067, top=0.946, wspace=0.403, hspace=0.205)
+
+    for k in range(len(joint_include)):
+        plt.subplot(math.ceil(plot_muscle_num / num_column + 1), num_column, k + 1)
+        plt.plot(time, tor[:, k], label='optimization', linewidth=2)
+        plt.plot(time, torque[:, k], label='measured', linewidth=2)
+        # plt.plot(time, calu_torque[k, :], label='calculate', linewidth=2)
+        if legend_label is True:
+            plt.ylabel(joint_include[k], weight='bold', size=10)
+        ax = plt.gca()
+        ax.set_xticklabels([])
+        # ax.axes.xaxis.set_visible(False)
+        rmse = np.sqrt(np.sum((tor[:, k] - torque[:, k]) ** 2) / len(torque[:, k]))
+        print("torque rmse", joint_include[k], ":\t", "{:.2f}".format(rmse))
+    rmse = np.sqrt(np.sum((tor - torque) ** 2) / torque.size)
+    print("torque rmse:\t", "{:.2f}".format(rmse))
+    rmse_emg = np.sqrt(np.sum((act - emg) ** 2) / emg.size)
+    print("emg rmse:\t", "{:.2f}".format(rmse_emg))
+    for j in range(plot_muscle_num):
+        plt.subplot(math.ceil(plot_muscle_num / num_column + 1), num_column, j + num_column + 1)
+        plt.errorbar(time_long, emg_mean_long[j, :], 2 * emg_std_long[j, :], label='emg', color='lavender', zorder=1)
+        plt.plot(time, act[j, :], label='optimization', linewidth=2, zorder=2, color='#1f77b4')
+        plt.plot(time, emg[j, :], label='emg', linewidth=2, zorder=3, color='#ff7f0e')
+        plt.ylabel(musc_label[j], weight='bold')
+        if j >= plot_muscle_num - len(joint_include):
+            plt.xlabel('time (s)')
+        else:
+            ax = plt.gca()
+            ax.set_xticklabels([])
+        # plt.legend()
+    plt.savefig('test_{}.png'.format(num))
+
+
+def test_emg_after_training(num, y, a, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std, trend_u, trend_d):
+    time_long = resample_by_len(list(time), emg_mean_long.shape[1])
+
+    shape0 = arm.shape[0]
+    shape1 = arm.shape[1]
+    shape2 = arm.shape[2]
+
+    # 创建一个具体的模型
+    model = ConcreteModel()
+    model.I = RangeSet(0, shape0 - 1)
+    model.J = RangeSet(0, shape1 - 1)
+    model.K = RangeSet(0, shape2 - 1)
+
+    # 定义变量
+    model.x = Var(model.I, model.J, within=NonNegativeReals)  # muscle activation
+    model.u = Var(model.I, model.J, within=NonNegativeReals)  # neural activation
+    # model.c = Var(model.I, within=NonNegativeReals)  # MVC emg
+    model.f = Var(model.I, model.J, within=Reals)  # muscle force
+    model.t = Var(model.J, model.K, within=Reals)  # torque
+
+    # 定义约束条件
+    model.constr = ConstraintList()
+    for j in model.J:
+        for i in model.I:
+            # if j != shape1 - 1:
+            #     model.constr.add(model.x[i, j + 1] >= model.x[i, j] + target_len / emg_lift_len * 5 * trend_d[i][j])
+            #     model.constr.add(model.x[i, j + 1] <= model.x[i, j] + target_len / emg_lift_len * 5 * trend_u[i][j])
+            model.constr.add(model.u[i, j] >= emg_mean[i, j] - emg_std[i, j] * 2)
+            model.constr.add(model.u[i, j] <= emg_mean[i, j] + emg_std[i, j] * 2)
+            model.constr.add(model.x[i, j] == (2.71828 ** (a[i] * model.u[i, j]) - 1) / ((2.71828 ** a[i]) - 1))
+            model.constr.add(model.x[i, j] <= 1)
+            model.constr.add(model.u[i, j] <= 1)
+            model.constr.add(model.f[i, j] == model.x[i, j] * y[i])  # muscle force
+        for k in range(shape2):
+            model.constr.add(model.t[j, k] == sum(arm[i, j, k] * model.f[i, j] for i in model.I))  # torque
+
+    # objective function
+    obj = sum((sum((model.t[j, k] - torque[j, k]) ** 2 for j in model.J) / shape1) for k in model.K)
+    # obj = (sum((sum((model.t[j, k] - torque[j, k]) ** 2 for j in model.J) / shape1) for k in model.K) +
+    #        0.01 * sum((sum(model.x[i, j] for i in model.I)) for j in model.J))
+    model.obj = Objective(expr=obj, sense=minimize)
+
+    # 求解器
+    solver = SolverFactory('ipopt')
+    solver.solve(model)
+
+    c = np.ones_like(emg)
+    e = np.ones_like(torque)
+    for i in model.I:
+        for j in model.J:
+            c[i, j] = value(model.u[i, j])
     for j in model.J:
         for k in model.K:
             e[j, k] = value(model.t[j, k])
@@ -1468,7 +1579,7 @@ def application_paper(label, fmax, idx):
                                 o['arm'], o['emg'], o['emg_mean'], o['emg_std'], o['trend_u'], o['trend_d'])
 
 
-def application(label, fmax, idx):
+def application(label, fmax, factorA, idx):
     if idx is None:
         if label == 'zhuo-left-1kg':
             idx = ['3', '4', '6', '7', '9']
@@ -1513,25 +1624,39 @@ def application(label, fmax, idx):
             test_optimization_emg(i, fmax, torque, time, emg_mean_long, emg_std_long, arm, emg, emg_mean, emg_std,
                                   emg_trend_u, emg_trend_d)
     elif sport_label == 'bench_press':
+        idx_label = False
         if label == 'bp-yuetian-right-all':
             labels = ['bp-yuetian-right-20kg', 'bp-yuetian-right-40kg', 'bp-yuetian-right-50kg', 'bp-yuetian-right-60kg']
             idxs = [['1', '2', '3', '4', '5', '6', '7', '8', '9'],
                     ['1', '2', '3', '4', '5', '7', '8', '9'],
                     ['2', '3', '4', '5', '6', '7', '8', '9'],
                     ['1', '2', '3', '4', '5', '6', '7', '8']]
+            idx_label = True
+        elif label == 'bp-kehan-right-45kg':
+            labels = ['bp-kehan-right-45kg']
+            idxs = [['1', '2', '3', '4', '6']]
+            idx_label = True
+        elif label == 'bp-kehan-right-all':
+            labels = ['bp-kehan-right-30kg', 'bp-kehan-right-40kg', 'bp-kehan-right-45kg', 'bp-kehan-right-50kg']
+            idxs = [['1', '3', '4', '5', '6'],
+                    ['1', '2', '3', '4', '6'],
+                    ['1', '2', '3', '4', '6'],
+                    ['2', '3']]
+            idx_label = True
+        if idx_label:
             for k in range(len(labels)):
                 label = labels[k]
                 idx = idxs[k]
                 print('-' * 5, label, '-' * 5)
                 for i in range(len(idx)):
                     o = read_groups_files(label, idx[i])
-                    test_optimization_emg_dl(i, fmax, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
+                    test_optimization_emg_dl(i, fmax, factorA, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
                                              o['arm'], o['emg'], o['emg_mean'], o['emg_std'], o['trend_u'],
                                              o['trend_d'])
         else:
             for i in range(len(idx)):
                 o = read_realted_files_bp(label=label, idx=idx[i])
-                test_optimization_emg_dl(i, fmax, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
+                test_optimization_emg_dl(i, fmax, factorA, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
                                          o['arm'], o['emg'], o['emg_mean'], o['emg_std'], o['trend_u'], o['trend_d'])
     elif sport_label == 'deadlift':
         if label == 'dl-yuetian-right-all':
@@ -1552,7 +1677,7 @@ def application(label, fmax, idx):
         else:
             for i in range(len(idx)):
                 o = read_groups_files(label, idx[i])
-                test_optimization_emg_dl(i, fmax, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
+                test_optimization_emg_dl(i, fmax, factorA, o['torque'], o['time'], o['emg_mean_long'], o['emg_std_long'],
                                          o['arm'], o['emg'], o['emg_mean'], o['emg_std'], o['trend_u'], o['trend_d'])
 
 

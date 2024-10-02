@@ -4,6 +4,6 @@
 /result
 /.idea
 /files
-.png
-.xlsx
+*.png
+*.xlsx
 /emg
